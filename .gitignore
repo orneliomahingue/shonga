@@ -1,6 +1,10 @@
 .DS_Store
 .thumbs.db
 node_modules
+.env
+shonga-api/.env
+shonga-api/dist
+shonga-api/src/generated
 
 # Quasar core related directories
 .quasar

@@ -1,1 +1,2 @@
-// app global css in SCSS form
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+html,body,#q-app{min-height:100%}body{background:#fbf7f8;color:#2d2226;font-family:'DM Sans',sans-serif}button{font-family:inherit;cursor:pointer}.shonga-layout{background:radial-gradient(circle at 50% 0,#fff 0,#fbf7f8 46%,#f9f1f4 100%)}.page-shell{width:min(100%,520px);min-height:100vh;margin:0 auto;padding:24px 18px 100px}
