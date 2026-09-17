@@ -10,12 +10,12 @@ export const usersTypeDefs = gql`
   type Role { id: ID!, name: String!, description: String }
   type AdminStats { users: Int!, activeUsers: Int!, blockedUsers: Int!, salons: Int!, approvedSalons: Int!, pendingSalons: Int! }
   extend type Query { users(filter: UsersFilter): UsersPage!, roles: [Role!]!, adminStats: AdminStats! }
-  extend type Mutation { updateUserStatus(userId: ID!, status: UserStatus!): PlatformUser!, assignUserRole(userId: ID!, roleName: String!): PlatformUser! }
+  extend type Mutation { updateUserStatus(userId: ID!, status: UserStatus!): PlatformUser!, assignUserRole(userId: ID!, roleName: String!): PlatformUser!, removeUser(userId: ID!): Boolean! }
 `
 
 const mapUser = (user: { roles: { role: { name: string } }[] }) => ({ ...user, roles: user.roles.map(({ role }) => role.name) })
 export const usersResolvers = {
   Query: { users: async (_: unknown, { filter }: { filter?: unknown }, context: GraphQLContext) => { const page = await usersService.list(filter, context.authUser); return { ...page, items: page.items.map(mapUser) } }, roles: (_: unknown, _args: unknown, context: GraphQLContext) => usersService.roles(context.authUser), adminStats: (_: unknown, _args: unknown, context: GraphQLContext) => usersService.stats(context.authUser) },
-  Mutation: { updateUserStatus: async (_: unknown, args: { userId: string; status: unknown }, context: GraphQLContext) => mapUser(await usersService.updateStatus(args.userId, args.status, context.authUser)), assignUserRole: async (_: unknown, args: { userId: string; roleName: string }, context: GraphQLContext) => mapUser(await usersService.assignRole(args.userId, args.roleName, context.authUser)) },
+  Mutation: { updateUserStatus: async (_: unknown, args: { userId: string; status: unknown }, context: GraphQLContext) => mapUser(await usersService.updateStatus(args.userId, args.status, context.authUser)), assignUserRole: async (_: unknown, args: { userId: string; roleName: string }, context: GraphQLContext) => mapUser(await usersService.assignRole(args.userId, args.roleName, context.authUser)), removeUser: (_: unknown, args: { userId: string }, context: GraphQLContext) => usersService.remove(args.userId, context.authUser) },
   PlatformUser: { createdAt: (user: { createdAt: Date }) => user.createdAt.toISOString() },
 }

@@ -1,51 +1,5 @@
 <template>
   <q-page class="booking-page">
-    <header class="app-header">
-      <div class="app-header-inner">
-        <button
-          class="brand"
-          type="button"
-          aria-label="Página inicial SHONGA"
-          @click="router.push('/')"
-        >
-          <span class="brand-mark">S</span
-          ><span class="brand-copy"><strong>SHONGA</strong><small>Beleza perto de si</small></span>
-        </button>
-        <div v-if="auth.isAuthenticated" class="app-header-user">
-          <button
-            class="profile-button"
-            type="button"
-            aria-label="Abrir perfil"
-            @click="openProfile"
-          >
-            <span class="user-copy"
-              ><strong>{{ auth.user?.firstName }}</strong
-              ><small>Minha conta</small></span
-            ><q-avatar class="header-avatar">{{ initials }}</q-avatar></button
-          ><span class="header-divider"></span
-          ><q-btn
-            flat
-            round
-            class="app-logout"
-            icon="logout"
-            aria-label="Terminar sessão"
-            :loading="loggingOut"
-            @click="logout"
-            ><q-tooltip>Terminar sessão</q-tooltip></q-btn
-          >
-        </div>
-        <q-btn
-          v-else
-          unelevated
-          rounded
-          no-caps
-          color="primary"
-          icon="person_outline"
-          label="Entrar"
-          :to="{ path: '/entrar', query: { redirect: route.fullPath } }"
-        />
-      </div>
-    </header>
     <header class="booking-header">
       <div class="header-inner">
         <q-btn flat round icon="arrow_back" aria-label="Voltar" @click="router.back()" />
@@ -407,7 +361,6 @@ const router = useRouter(),
   servicesLoading = ref(false),
   slotsLoading = ref(false),
   booking = ref(false),
-  loggingOut = ref(false),
   error = ref(''),
   success = ref(false),
   confirmedBooking = ref(null),
@@ -632,20 +585,6 @@ watch(service, () => {
 })
 watch([employee, date], loadSlots)
 onMounted(init)
-const initials = computed(() =>
-  `${auth.user?.firstName?.[0] || ''}${auth.user?.lastName?.[0] || ''}`.toUpperCase(),
-)
-const openProfile = () =>
-  router.push(auth.user?.roles.includes('ADMIN') ? '/admin' : '/gestao-salao')
-async function logout() {
-  loggingOut.value = true
-  try {
-    await auth.logout()
-    await router.replace('/')
-  } finally {
-    loggingOut.value = false
-  }
-}
 </script>
 
 <style scoped lang="scss">
@@ -1310,135 +1249,6 @@ main {
   }
   .summary-action .q-btn {
     width: 100%;
-  }
-}
-.app-header {
-  position: sticky;
-  z-index: 10;
-  top: 0;
-  width: 100%;
-  border-bottom: 1px solid #eee4e7;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 4px 18px rgba(74, 28, 45, 0.035);
-  backdrop-filter: blur(14px);
-}
-.app-header-inner {
-  display: flex;
-  width: min(calc(100% - 36px), 820px);
-  height: 72px;
-  align-items: center;
-  justify-content: space-between;
-  margin: auto;
-}
-.brand,
-.profile-button {
-  display: flex;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-}
-.brand {
-  gap: 10px;
-}
-.brand-mark {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border-radius: 13px;
-  background: linear-gradient(145deg, #a70d48, #da3471);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 800;
-  box-shadow: 0 7px 17px rgba(173, 18, 77, 0.22);
-}
-.brand-copy,
-.user-copy {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-.brand-copy strong {
-  color: #9f1047;
-  font-size: 15px;
-  line-height: 1.1;
-  letter-spacing: 2px;
-}
-.brand-copy small,
-.user-copy small {
-  color: #918589;
-  font-size: 8px;
-}
-.app-header-user {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.profile-button {
-  gap: 8px;
-}
-.user-copy {
-  align-items: flex-end;
-}
-.user-copy strong {
-  color: #3b3034;
-  font-size: 11px;
-}
-.header-avatar {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 2px solid #fff;
-  background: #fbe4ec;
-  color: #ae154f;
-  font-size: 14px;
-  box-shadow: 0 0 0 1px #f1dce4;
-}
-.header-divider {
-  width: 1px;
-  height: 24px;
-  background: #eee4e7;
-}
-.app-logout {
-  background: #fff4f5;
-  color: #b32434;
-}
-@media (max-width: 600px) {
-  .app-header-inner {
-    height: 68px;
-  }
-  .brand-copy small,
-  .user-copy {
-    display: none;
-  }
-  .brand-mark {
-    width: 38px;
-    height: 38px;
-  }
-  .brand-copy strong {
-    font-size: 14px;
-    letter-spacing: 1.6px;
-  }
-  .app-header-user {
-    gap: 7px;
-  }
-  .header-avatar {
-    width: 38px;
-    height: 38px;
-  }
-  .app-header-inner > .q-btn {
-    font-size: 10px;
-  }
-}
-@media (max-width: 350px) {
-  .brand-copy strong {
-    font-size: 13px;
-  }
-  .header-divider {
-    display: none;
   }
 }
 .booking-time-card {

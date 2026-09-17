@@ -197,7 +197,7 @@
     <q-dialog v-model="timeOffDialog"
       ><q-card class="dialog-card"
         ><div class="dialog-header">
-          <span><q-icon name="event_block" /></span>
+          <span><q-icon name="block" /></span>
           <div>
             <small>NOVO BLOQUEIO</small>
             <h2>Adicionar indisponibilidade</h2>

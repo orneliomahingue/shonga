@@ -108,7 +108,7 @@ async function submit() {
 
 // Form panel
 .auth-form-panel{position:relative;display:flex;min-width:0;min-height:100vh;align-items:center;justify-content:center;padding:90px 26px 60px;background:#fffaf6}
-.back-home{position:absolute;z-index:2;top:26px;left:26px;display:flex;width:max-content;align-items:center;gap:8px;padding:8px 4px;border:0;background:none;color:#a7123f;font-weight:700;font-size:12px;letter-spacing:1.6px;transition:transform .18s ease,opacity .18s ease}
+.back-home{position:absolute;z-index:2;top:calc(26px + env(safe-area-inset-top,0px));left:26px;display:flex;width:max-content;align-items:center;gap:8px;padding:8px 4px;border:0;background:none;color:#a7123f;font-weight:700;font-size:12px;letter-spacing:1.6px;transition:transform .18s ease,opacity .18s ease}
 .back-home:hover{transform:translateX(-2px);opacity:.8}
 .back-home:focus-visible{outline:2px solid #dc4a7e;outline-offset:4px;border-radius:8px}
 .back-home .q-icon{font-size:18px}

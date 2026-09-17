@@ -441,11 +441,11 @@ async function logout() {
   z-index: 10;
   top: 0;
   display: flex;
-  height: 72px;
+  min-height: 72px;
   align-items: center;
   justify-content: space-between;
   margin: 0 -18px 28px;
-  padding: 0 18px;
+  padding: env(safe-area-inset-top, 0px) 18px 0;
   border-bottom: 1px solid rgba(238, 228, 231, 0.7);
   background: rgba(255, 255, 255, 0.82);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 10px 30px rgba(74, 28, 45, 0.06);

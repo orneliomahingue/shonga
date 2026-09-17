@@ -122,4 +122,9 @@ export const salonsService = {
       include: { owner: true },
     })
   },
+  async remove(salonId: string, requester: AuthUser | null) {
+    requireRoles(requester, ['ADMIN'])
+    await prisma.salon.update({ where: { id: salonId }, data: { deletedAt: new Date() } })
+    return true
+  },
 }

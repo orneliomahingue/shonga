@@ -41,4 +41,10 @@ export const usersService = {
     await prisma.userRole.upsert({ where: { userId_roleId: { userId, roleId: role.id } }, update: {}, create: { userId, roleId: role.id } })
     return prisma.user.findUniqueOrThrow({ where: { id: userId }, include: userInclude })
   },
+  async remove(userId: string, requester: AuthUser | null) {
+    const admin = requireRoles(requester, ['ADMIN'])
+    if (admin.id === userId) throw new GraphQLError('Não pode remover a própria conta', { extensions: { code: 'BAD_USER_INPUT' } })
+    await prisma.user.update({ where: { id: userId }, data: { deletedAt: new Date() } })
+    return true
+  },
 }

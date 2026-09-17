@@ -1,42 +1,5 @@
 <template>
   <q-page class="appointments-page">
-    <header class="brand-header">
-      <div class="brand-bar">
-        <button
-          class="brand"
-          type="button"
-          aria-label="Página inicial SHONGA"
-          @click="router.push('/')"
-        >
-          <span class="brand-mark">S</span
-          ><span class="brand-copy"><strong>SHONGA</strong><small>Beleza perto de si</small></span>
-        </button>
-        <div class="header-user">
-          <button
-            class="profile-button"
-            type="button"
-            aria-label="Abrir perfil"
-            @click="openProfile"
-          >
-            <span class="user-copy"
-              ><strong>{{ auth.user?.firstName }}</strong
-              ><small>Minha conta</small></span
-            ><span class="avatar-wrap"
-              ><q-avatar class="header-avatar">{{ initials }}</q-avatar><i></i></span
-            ><q-icon class="profile-chevron" name="expand_more" /></button
-          ><q-btn
-            flat
-            round
-            class="logout-button"
-            icon="logout"
-            aria-label="Terminar sessão"
-            :loading="loggingOut"
-            @click="logout"
-            ><q-tooltip>Terminar sessão</q-tooltip></q-btn
-          >
-        </div>
-      </div>
-    </header>
     <main>
       <section class="page-intro">
         <div>
@@ -61,7 +24,7 @@
       ></q-banner>
       <section class="overview">
         <article class="stat-card primary-stat">
-          <span><q-icon name="event_upcoming" /></span>
+          <span><q-icon name="upcoming" /></span>
           <div>
             <small>PRÓXIMAS</small><strong>{{ upcoming.length }}</strong>
             <p>{{ upcoming.length === 1 ? 'compromisso agendado' : 'compromissos agendados' }}</p>
@@ -121,10 +84,7 @@
       </section>
       <section class="agenda-panel">
         <div class="panel-head">
-          <div>
-            <span class="eyebrow">TODAS AS RESERVAS</span>
-            <h2>A sua agenda</h2>
-          </div>
+          <h2 class="visually-hidden">Todas as reservas</h2>
           <div class="tabs" role="tablist">
             <button type="button" :class="{ active: tab === 'upcoming' }" @click="tab = 'upcoming'">
               Próximas <span>{{ upcoming.length }}</span></button
@@ -245,7 +205,7 @@
           </article>
         </div>
         <div v-else class="empty-state">
-          <span><q-icon :name="tab === 'upcoming' ? 'calendar_add_on' : 'history'" /></span>
+          <span><q-icon :name="tab === 'upcoming' ? 'calendar_month' : 'history'" /></span>
           <h2>{{ emptyTitle }}</h2>
           <p>{{ emptyText }}</p>
           <q-btn
@@ -376,7 +336,6 @@ const auth = useAuthStore(),
   route = useRoute()
 const loading = ref(true),
   cancelling = ref(false),
-  loggingOut = ref(false),
   error = ref(''),
   appointments = ref([]),
   tab = ref('upcoming'),
@@ -591,20 +550,6 @@ watch(tab, () => {
   statusFilter.value = null
 })
 onMounted(load)
-const initials = computed(() =>
-  `${auth.user?.firstName?.[0] || ''}${auth.user?.lastName?.[0] || ''}`.toUpperCase(),
-)
-const openProfile = () =>
-  router.push(auth.user?.roles.includes('ADMIN') ? '/admin' : '/gestao-salao')
-async function logout() {
-  loggingOut.value = true
-  try {
-    await auth.logout()
-    await router.replace('/')
-  } finally {
-    loggingOut.value = false
-  }
-}
 </script>
 
 <style scoped lang="scss">
@@ -615,145 +560,6 @@ async function logout() {
   padding: 0 !important;
   background: linear-gradient(180deg, #fff 0, #fbf7f9 340px, #f8f5f7 100%);
   color: #30262a;
-}
-.brand-header {
-  position: sticky;
-  z-index: 10;
-  top: 0;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  border-bottom: 1px solid rgba(235, 224, 228, 0.8);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(18px);
-}
-.brand-bar {
-  display: flex;
-  width: min(calc(100% - 40px), 1040px);
-  height: 72px;
-  align-items: center;
-  justify-content: space-between;
-  margin: auto;
-}
-.brand,
-.profile-button {
-  display: flex;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  background: none;
-}
-.brand {
-  gap: 10px;
-}
-.brand-mark {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border-radius: 13px;
-  background: linear-gradient(145deg, #9c0d43, #d72f6d);
-  color: #fff;
-  font-size: 20px;
-  font-weight: 800;
-  box-shadow: 0 8px 20px rgba(173, 18, 77, 0.22);
-}
-.brand-copy,
-.user-copy {
-  display: flex;
-  flex-direction: column;
-}
-.brand-copy strong {
-  color: #9f1047;
-  font-size: 15px;
-  line-height: 1;
-  letter-spacing: 2px;
-}
-.brand-copy small,
-.user-copy small {
-  color: #95898d;
-  font-size: 8px;
-}
-.header-user,
-.profile-button {
-  display: flex;
-  align-items: center;
-}
-.header-user {
-  gap: 8px;
-  padding: 4px;
-  border: 1px solid #eee3e7;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 7px 22px rgba(78, 29, 47, 0.07);
-}
-.profile-button {
-  gap: 9px;
-  min-height: 44px;
-  padding: 3px 5px 3px 10px;
-  border: 0;
-  border-radius: 14px;
-  background: transparent;
-  color: #3b3034;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-.profile-button:hover {
-  background: #fbf3f6;
-}
-.profile-button:active {
-  transform: scale(0.98);
-}
-.user-copy {
-  align-items: flex-end;
-}
-.user-copy strong {
-  font-size: 12px;
-  line-height: 1.15;
-}
-.avatar-wrap {
-  position: relative;
-  display: inline-flex;
-}
-.header-avatar {
-  width: 42px;
-  height: 42px;
-  border: 2px solid #fff;
-  background: linear-gradient(145deg, #fff1f6, #f5d5e1);
-  color: #a7124b;
-  font-size: 14px;
-  font-weight: 700;
-  box-shadow:
-    0 0 0 1px #e8cbd6,
-    0 6px 14px rgba(174, 21, 79, 0.12);
-}
-.avatar-wrap i {
-  position: absolute;
-  right: 0;
-  bottom: 1px;
-  width: 10px;
-  height: 10px;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: #24a66a;
-}
-.profile-chevron {
-  margin-right: 2px;
-  color: #aa929b;
-  font-size: 18px;
-}
-.logout-button {
-  width: 40px;
-  height: 40px;
-  background: #fff0f2;
-  color: #b51f36;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-.logout-button:hover {
-  background: #ffe1e6;
-  transform: translateX(1px);
 }
 main {
   width: min(calc(100% - 40px), 1040px);
@@ -961,18 +767,19 @@ main {
   box-shadow: 0 12px 35px rgba(67, 29, 43, 0.06);
 }
 .panel-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 23px 24px 17px;
+  padding: 20px 24px 14px;
 }
-.panel-head h2 {
-  margin: 4px 0 0;
-  font-size: 21px;
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 .tabs {
-  display: flex;
+  display: inline-flex;
   gap: 4px;
   padding: 4px;
   border-radius: 14px;
@@ -1504,15 +1311,17 @@ main {
     padding-top: 27px;
   }
   .page-intro {
-    align-items: stretch;
+    align-items: flex-start;
     flex-direction: column;
+    gap: 16px;
     margin-bottom: 20px;
   }
   .page-intro h1 {
     font-size: 29px;
   }
   .new-booking {
-    width: 100%;
+    height: 42px;
+    padding: 0 18px;
   }
   .overview {
     gap: 7px;
@@ -1565,9 +1374,11 @@ main {
     border-top: 1px solid rgba(255, 255, 255, 0.13);
   }
   .panel-head {
-    align-items: stretch;
-    flex-direction: column;
-    padding: 19px 15px 13px;
+    padding: 16px 15px 13px;
+  }
+  .tabs {
+    display: flex;
+    width: 100%;
   }
   .tabs button {
     flex: 1;
@@ -1630,19 +1441,6 @@ main {
   }
   .cancel-actions .q-btn:last-child {
     grid-row: 1;
-  }
-  .brand-bar {
-    width: calc(100% - 28px);
-    height: 66px;
-  }
-  .brand-copy small,
-  .user-copy {
-    display: none;
-  }
-  .brand-mark,
-  .header-avatar {
-    width: 38px;
-    height: 38px;
   }
   .page-intro p {
     font-size: 10px;

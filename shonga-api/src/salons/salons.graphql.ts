@@ -90,6 +90,7 @@ export const salonsTypeDefs = gql`
     registerSalon(input: RegisterSalonInput!): Salon!
     updateSalon(salonId: ID!, input: UpdateSalonInput!): Salon!
     updateSalonStatus(salonId: ID!, status: SalonStatus!): Salon!
+    removeSalon(salonId: ID!): Boolean!
   }
 `
 export const salonsResolvers = {
@@ -111,6 +112,8 @@ export const salonsResolvers = {
       args: { salonId: string; status: unknown },
       context: GraphQLContext,
     ) => salonsService.updateStatus(args.salonId, args.status, context.authUser),
+    removeSalon: (_: unknown, args: { salonId: string }, context: GraphQLContext) =>
+      salonsService.remove(args.salonId, context.authUser),
   },
   Salon: {
     latitude: (salon: { latitude: { toNumber(): number } | null }) =>
