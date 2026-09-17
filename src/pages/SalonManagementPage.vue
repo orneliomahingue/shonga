@@ -729,7 +729,9 @@
                     dense
                     class="service-selected-chip"
                     @remove="scope.removeAt(scope.index)"
-                    ><q-icon :name="scope.opt.icon" />{{ scope.opt.label }}</q-chip
+                    ><q-icon :name="scope.opt.icon" class="service-chip-icon" />{{
+                      scope.opt.label
+                    }}</q-chip
                   ></template
                 >
                 <template #option="scope"
@@ -750,13 +752,22 @@
                         " /></q-item-section></q-item></template
               ></q-select></div></q-card-section
           ><q-card-actions class="dialog-actions"
-            ><q-btn v-close-popup flat rounded no-caps label="Cancelar" /><q-btn
+            ><q-btn
+              v-close-popup
+              flat
+              rounded
+              no-caps
+              icon="close"
+              label="Cancelar"
+              class="dialog-secondary-action"
+            /><q-btn
               unelevated
               rounded
               no-caps
               color="primary"
               type="submit"
-              :icon-right="tab === 'services' ? 'check_circle' : 'arrow_forward'"
+              icon="task_alt"
+              class="dialog-primary-action"
               :label="
                 editingId
                   ? 'Guardar alterações'
@@ -1899,8 +1910,11 @@ onMounted(init)
 }
 .grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+.grid > * {
+  min-width: 0;
 }
 @media (max-width: 600px) {
   .management-page {
@@ -2621,7 +2635,7 @@ onMounted(init)
   font-size: 8px !important;
   font-weight: 700;
 }
-.service-selected-chip > .q-icon {
+.service-selected-chip .service-chip-icon {
   margin-right: 5px;
   color: #b01750;
   font-size: 13px;
@@ -2764,15 +2778,43 @@ onMounted(init)
   display: flex;
   flex: none;
   justify-content: flex-end;
-  gap: 7px;
+  gap: 10px;
   padding: 16px 26px 24px !important;
   border-top: 1px solid #f1e8eb;
   background: #fdfafb;
 }
-.dialog-actions .q-btn:last-child {
-  min-width: 175px;
+.dialog-actions .dialog-secondary-action {
+  min-width: 116px;
   height: 43px;
+  padding-inline: 18px;
+  color: #675b60;
+  font-weight: 700;
+}
+.dialog-actions .dialog-secondary-action:hover {
+  background: #f5edf0;
+  color: #961344;
+}
+.dialog-actions .q-btn:last-child {
+  min-width: 205px;
+  height: 46px;
   font-weight: 800;
+}
+.dialog-actions .dialog-primary-action {
+  background: linear-gradient(135deg, #a80f48, #d52967) !important;
+  box-shadow: 0 9px 20px rgba(173, 18, 77, 0.22);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.dialog-actions .dialog-primary-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 25px rgba(173, 18, 77, 0.28);
+}
+.dialog-actions .dialog-primary-action :deep(.q-btn__content),
+.dialog-actions .dialog-secondary-action :deep(.q-btn__content) {
+  flex-wrap: nowrap;
+  gap: 7px;
+  white-space: nowrap;
 }
 .service-dialog-card .dialog-actions .q-btn:last-child {
   min-width: 190px;
@@ -2818,13 +2860,23 @@ onMounted(init)
     padding: 12px 18px 16px !important;
   }
   .dialog-actions .q-btn {
-    flex: 1;
+    min-width: 0;
   }
-  .dialog-actions .q-btn:last-child {
+  .dialog-actions .dialog-secondary-action {
+    flex: 0.8 1 0;
+    padding-inline: 10px;
+  }
+  .dialog-actions .dialog-primary-action {
+    flex: 1.35 1 0;
     min-width: 0;
   }
   .grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .employee-dialog-form .grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 440px) {
@@ -2834,21 +2886,12 @@ onMounted(init)
   .dialog-header p {
     max-width: 250px;
   }
-  .employee-dialog-form .grid {
-    grid-template-columns: 1fr;
-  }
   .service-values-grid {
     grid-template-columns: 1fr;
     gap: 5px;
   }
   .service-form-intro {
     align-items: flex-start;
-  }
-  .dialog-actions {
-    flex-direction: column-reverse;
-  }
-  .dialog-actions .q-btn {
-    width: 100%;
   }
   .photo-field {
     align-items: flex-start;
