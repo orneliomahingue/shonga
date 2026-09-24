@@ -8,12 +8,12 @@
       </div>
       <div v-if="!loading && salons.length" class="header-actions">
         <q-btn
-          outline
+          flat
           rounded
           no-caps
-          color="primary"
-          icon="event_available"
+          icon="event_note"
           label="Marcações"
+          class="header-action secondary"
           to="/gestao-salao/marcacoes"
         />
         <q-btn
@@ -23,6 +23,7 @@
           color="primary"
           icon="calendar_month"
           label="Gerir horários"
+          class="header-action primary"
           to="/gestao-salao/agenda"
         />
       </div>
@@ -68,12 +69,23 @@
             dense
             :options="salons"
             option-label="name"
+            dropdown-icon="expand_more"
+            options-dense
+            aria-label="Selecionar salão em gestão"
+            popup-content-class="salon-options-menu"
             class="salon-select"
           />
         </div>
         <span class="approval-pill" :class="selectedSalon.status.toLowerCase()"
-          ><i></i
-          >{{
+          ><q-icon
+            :name="
+              selectedSalon.status === 'APPROVED'
+                ? 'verified'
+                : selectedSalon.status === 'REJECTED'
+                  ? 'cancel'
+                  : 'schedule'
+            "
+          />{{
             selectedSalon.status === 'APPROVED'
               ? 'Aprovado'
               : selectedSalon.status === 'REJECTED'
@@ -82,10 +94,10 @@
           }}</span
         >
         <q-btn
-          flat
+          unelevated
           round
-          color="primary"
-          icon="edit"
+          icon="edit_square"
+          class="salon-edit-action"
           aria-label="Editar salão"
           @click="openSalonDialog"
           ><q-tooltip>Editar salão</q-tooltip></q-btn
@@ -99,22 +111,22 @@
         </div></q-banner
       >
       <section class="summary-grid">
-        <article>
-          <span class="summary-icon services"><q-icon name="spa" /></span>
+        <article class="summary-card services-card">
+          <span class="summary-icon services"><q-icon name="design_services" /></span>
           <div>
             <strong>{{ services.length }}</strong
             ><small>Serviços</small>
           </div>
         </article>
-        <article>
-          <span class="summary-icon active"><q-icon name="check_circle" /></span>
+        <article class="summary-card active-card">
+          <span class="summary-icon active"><q-icon name="verified" /></span>
           <div>
             <strong>{{ activeServices }}</strong
             ><small>Serviços activos</small>
           </div>
         </article>
-        <article>
-          <span class="summary-icon team"><q-icon name="groups" /></span>
+        <article class="summary-card team-card">
+          <span class="summary-icon team"><q-icon name="group" /></span>
           <div>
             <strong>{{ employees.length }}</strong
             ><small>Especialistas</small>
@@ -126,7 +138,7 @@
           v-model="tab"
           dense
           no-caps
-          align="left"
+          align="justify"
           active-color="primary"
           indicator-color="primary"
           class="management-tabs"
@@ -155,6 +167,7 @@
             no-caps
             color="primary"
             icon="add"
+            class="catalog-add-action"
             :label="tab === 'services' ? 'Novo serviço' : 'Novo especialista'"
             @click="openDialog()"
           />
@@ -163,6 +176,7 @@
           <article
             v-for="service in services"
             :key="service.id"
+            class="catalog-item"
             :class="{ inactive: service.status !== 'ACTIVE' }"
           >
             <span class="item-icon"><q-icon name="spa" /></span>
@@ -185,7 +199,7 @@
               flat
               round
               dense
-              icon="edit"
+              icon="edit_note"
               class="edit-btn"
               aria-label="Editar serviço"
               @click="openDialog(service)"
@@ -197,6 +211,7 @@
           <article
             v-for="employee in employees"
             :key="employee.id"
+            class="catalog-item"
             :class="{ inactive: employee.status !== 'ACTIVE' }"
           >
             <q-avatar class="employee-avatar">
@@ -237,7 +252,7 @@
               flat
               round
               dense
-              icon="edit"
+              icon="edit_note"
               class="edit-btn"
               aria-label="Editar especialista"
               @click="openDialog(employee)"
@@ -514,8 +529,8 @@
                 outlined
                 rounded
                 type="number"
-                min="0"
-                step="50"
+                min="10"
+                step="any"
                 label="Preço *"
                 :rules="[required]"
                 ><template #prepend><q-icon name="payments" /></template
@@ -1067,6 +1082,7 @@ const DATA = gql`
     managedSalonServices(salonId: $id) {
       id
       name
+      description
       price
       durationMin
       status
@@ -1095,6 +1111,7 @@ const CREATE_SERVICE = gql`
   mutation CreateService($input: ServiceInput!) {
     createSalonService(input: $input) {
       id
+      description
     }
   }
 `
@@ -1102,6 +1119,7 @@ const UPDATE_SERVICE = gql`
   mutation UpdateService($id: ID!, $input: ServiceUpdateInput!) {
     updateSalonService(id: $id, input: $input) {
       id
+      description
     }
   }
 `
@@ -1360,9 +1378,9 @@ async function save() {
       const input = {
         categoryId: serviceForm.category.id,
         name: serviceForm.name,
+        description: serviceForm.description.trim() || null,
         price: Number(serviceForm.price),
         durationMin: Number(serviceForm.durationMin),
-        ...(serviceForm.description ? { description: serviceForm.description } : {}),
       }
       if (editingId.value)
         await apolloClient.mutate({
@@ -1483,31 +1501,92 @@ onMounted(init)
   color: #30272a;
 }
 .page-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 24px;
+  gap: 26px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  padding: 24px 26px;
+  border: 1px solid #eee1e6;
+  border-radius: 24px;
+  background: linear-gradient(125deg, #fff 54%, #fff5f8);
+  box-shadow: 0 10px 30px rgba(71, 28, 44, 0.055);
+}
+.page-header::after {
+  position: absolute;
+  top: -55px;
+  right: -30px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(205, 35, 98, 0.09), transparent 70%);
+  content: '';
+  pointer-events: none;
+}
+.page-header > div {
+  position: relative;
+  z-index: 1;
 }
 .page-header > div:first-child > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   color: #ad134e;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 1.4px;
+  letter-spacing: 1.6px;
+}
+.page-header > div:first-child > span::before {
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: #c91e5d;
+  content: '';
 }
 .page-header h1 {
-  margin: 4px 0;
-  font-size: 30px;
-  line-height: 1.15;
+  margin: 7px 0 6px;
+  font-size: clamp(27px, 3.5vw, 34px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.8px;
 }
 .page-header p {
   margin: 0;
   color: #8d8085;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.5;
 }
 .header-actions {
   display: flex;
   align-items: center;
+  gap: 9px;
+  flex: none;
+}
+.header-action {
+  min-height: 44px;
+  padding-inline: 18px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.header-action.secondary {
+  border: 1px solid #e7c5d2;
+  background: rgba(255, 255, 255, 0.75) !important;
+  color: #a41149;
+}
+.header-action.secondary:hover {
+  border-color: #c91e5d;
+  background: #fff !important;
+}
+.header-action.primary {
+  min-width: 150px;
+  background: linear-gradient(135deg, #ad134e, #d62b6a) !important;
+  box-shadow: 0 8px 18px rgba(173, 19, 78, 0.2);
+}
+.header-action :deep(.q-btn__content) {
+  flex-wrap: nowrap;
   gap: 7px;
 }
 .error-banner {
@@ -1539,25 +1618,46 @@ onMounted(init)
   color: #897d81;
 }
 .salon-context {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 13px;
-  padding: 14px 16px;
-  border: 1px solid #eee5e8;
-  border-radius: 18px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(71, 28, 44, 0.04);
+  gap: 14px;
+  padding: 16px 18px;
+  overflow: hidden;
+  border: 1px solid #eadfe3;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #fff 62%, #fff7fa);
+  box-shadow: 0 10px 30px rgba(71, 28, 44, 0.07);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.salon-context::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background: linear-gradient(#b1114e, #dd477e);
+  content: '';
+}
+.salon-context:hover {
+  border-color: #e5ccd6;
+  box-shadow: 0 14px 36px rgba(71, 28, 44, 0.1);
+  transform: translateY(-1px);
 }
 .salon-mark {
   display: grid;
-  width: 46px;
-  height: 46px;
+  width: 50px;
+  height: 50px;
   flex: none;
   place-items: center;
-  border-radius: 14px;
+  border-radius: 16px;
   background: linear-gradient(145deg, #b1114e, #d83c74);
   color: #fff;
-  font-size: 22px;
+  font-size: 23px;
+  box-shadow: 0 8px 18px rgba(177, 17, 78, 0.2);
 }
 .salon-copy {
   min-width: 0;
@@ -1565,29 +1665,43 @@ onMounted(init)
 }
 .salon-copy > small {
   display: block;
-  margin-bottom: -5px;
+  margin-bottom: -3px;
   color: #9a8e92;
   font-size: 8px;
   font-weight: 800;
   letter-spacing: 1px;
 }
 .salon-select {
-  max-width: 420px;
+  width: min(100%, 420px);
   font-size: 17px;
   font-weight: 700;
+}
+.salon-select :deep(.q-field__control) {
+  min-height: 32px;
+  color: #31272b;
+}
+.salon-select :deep(.q-field__append) {
+  color: #9d8490;
+  transition: color 0.2s ease;
+}
+.salon-select:hover :deep(.q-field__append) {
+  color: #ad134e;
 }
 .approval-pill,
 .active-dot {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 10px;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
   background: #fff1d5;
   color: #815d0a;
   font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
+}
+.approval-pill > .q-icon {
+  font-size: 13px;
 }
 .approval-pill i,
 .active-dot i {
@@ -1605,6 +1719,39 @@ onMounted(init)
 .active-dot.off {
   background: #fee5e7;
   color: #a82837;
+}
+.salon-edit-action {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  background: #f9e6ed !important;
+  color: #ad134e;
+  font-size: 19px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+.salon-edit-action:hover {
+  background: #ad134e !important;
+  color: #fff;
+  transform: rotate(-3deg) scale(1.04);
+}
+:global(.salon-options-menu) {
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid #eadfe3;
+  border-radius: 15px;
+  box-shadow: 0 16px 38px rgba(71, 28, 44, 0.16);
+}
+:global(.salon-options-menu .q-item) {
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+:global(.salon-options-menu .q-item--active) {
+  background: #fbeaf0;
+  color: #a61149;
 }
 .approval-banner {
   display: flex;
@@ -1626,26 +1773,64 @@ onMounted(init)
 }
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin: 16px 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
 }
 .summary-grid article {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 14px;
-  border: 1px solid #eee5e8;
-  border-radius: 16px;
-  background: #fff;
+  gap: 13px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 15px 16px;
+  border: 1px solid color-mix(in srgb, var(--metric-color) 16%, #eee5e8);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff 55%, var(--metric-surface));
+  box-shadow: 0 7px 20px rgba(71, 28, 44, 0.045);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+.summary-grid article::after {
+  position: absolute;
+  top: 0;
+  right: 14px;
+  left: 14px;
+  height: 2px;
+  border-radius: 0 0 999px 999px;
+  background: var(--metric-color);
+  content: '';
+  opacity: 0.55;
+}
+.summary-grid article:hover {
+  border-color: color-mix(in srgb, var(--metric-color) 28%, #eee5e8);
+  box-shadow: 0 11px 26px rgba(71, 28, 44, 0.08);
+  transform: translateY(-2px);
+}
+.services-card {
+  --metric-color: #b31250;
+  --metric-surface: #fff4f8;
+}
+.active-card {
+  --metric-color: #19865a;
+  --metric-surface: #f1fbf6;
+}
+.team-card {
+  --metric-color: #7158c7;
+  --metric-surface: #f7f4ff;
 }
 .summary-icon {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
+  flex: none;
   place-items: center;
-  border-radius: 13px;
-  font-size: 20px;
+  border-radius: 14px;
+  font-size: 21px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 .summary-icon.services {
   background: #fbe4ec;
@@ -1661,63 +1846,122 @@ onMounted(init)
 }
 .summary-grid article > div {
   display: flex;
+  min-width: 0;
   flex-direction: column;
 }
 .summary-grid strong {
-  font-size: 21px;
-  line-height: 1.1;
+  color: #34292d;
+  font-size: 23px;
+  line-height: 1;
+  letter-spacing: -0.4px;
 }
 .summary-grid small {
+  margin-top: 4px;
   color: #8e8286;
   font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 .content-panel {
   overflow: hidden;
-  border: 1px solid #eee5e8;
-  border-radius: 21px;
+  border: 1px solid #eadfe3;
+  border-radius: 24px;
   background: #fff;
-  box-shadow: 0 10px 30px rgba(70, 27, 43, 0.05);
+  box-shadow: 0 12px 34px rgba(70, 27, 43, 0.07);
 }
 .management-tabs {
-  border-bottom: 1px solid #eee8ea;
+  margin: 10px;
+  padding: 4px;
+  border: 1px solid #eee4e8;
+  border-radius: 16px;
+  background: #faf6f8;
+}
+.management-tabs :deep(.q-tab) {
+  min-height: 48px;
+  border-radius: 12px;
+  color: #75696e;
+  font-size: 11px;
+  font-weight: 700;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.management-tabs :deep(.q-tab--active) {
+  background: #fff;
+  color: #ad134e;
+  box-shadow: 0 5px 14px rgba(91, 37, 57, 0.09);
+}
+.management-tabs :deep(.q-tab__indicator) {
+  display: none;
+}
+.management-tabs :deep(.q-tab__icon) {
+  margin-bottom: 2px;
+  font-size: 20px;
 }
 .section-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  padding: 20px;
-  border-bottom: 1px solid #f1eaec;
+  padding: 22px 20px 18px;
 }
 .section-actions h2 {
   margin: 0;
-  font-size: 19px;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -0.25px;
 }
 .section-actions p {
-  margin: 3px 0;
+  margin: 5px 0 0;
   color: #918588;
   font-size: 10px;
 }
+.catalog-add-action {
+  min-height: 44px;
+  padding-inline: 19px;
+  background: linear-gradient(135deg, #ad134e, #d62b6a) !important;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(173, 19, 78, 0.2);
+}
+.catalog-add-action :deep(.q-btn__content) {
+  flex-wrap: nowrap;
+  gap: 7px;
+}
 .items {
   display: grid;
+  gap: 9px;
+  padding: 0 14px 14px;
 }
 .items article {
+  position: relative;
   display: flex;
   min-width: 0;
   align-items: center;
   gap: 14px;
-  padding: 17px 20px;
-  border-bottom: 1px solid #f1eaec;
-  transition: background 0.2s;
+  padding: 15px 14px;
+  border: 1px solid #eee5e8;
+  border-radius: 17px;
+  background: #fff;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 .items article:last-child {
-  border-bottom: 0;
+  border-bottom: 1px solid #eee5e8;
 }
 .items article:hover {
-  background: #fdfafb;
+  border-color: #e7ccd6;
+  background: #fffafb;
+  box-shadow: 0 8px 20px rgba(73, 29, 45, 0.07);
+  transform: translateY(-1px);
 }
 .items article.inactive {
-  opacity: 0.62;
+  background: #faf8f9;
+  opacity: 0.68;
 }
 .item-icon,
 .employee-avatar {
@@ -1727,9 +1971,10 @@ onMounted(init)
   flex: none;
   place-items: center;
   border-radius: 15px;
-  background: #fbe5ec;
+  background: linear-gradient(145deg, #fce7ee, #f8dce7);
   color: #ad134e;
   font-size: 21px;
+  box-shadow: inset 0 0 0 1px rgba(179, 18, 80, 0.05);
 }
 .employee-avatar {
   background: #eee9ff;
@@ -1749,8 +1994,10 @@ onMounted(init)
   letter-spacing: 0.5px;
 }
 .items h3 {
-  margin: 2px 0 4px;
-  font-size: 15px;
+  margin: 3px 0 6px;
+  color: #3b3034;
+  font-size: 14px;
+  font-weight: 700;
 }
 .items p {
   margin: 0;
@@ -1768,7 +2015,8 @@ onMounted(init)
 }
 .item-meta strong {
   color: #a8124c;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 800;
 }
 .item-meta label {
   display: flex;
@@ -1830,11 +2078,21 @@ onMounted(init)
   flex: none;
 }
 .edit-btn {
+  width: 36px;
+  height: 36px;
   flex: none;
-  color: #a79aa0;
+  background: #f7f1f3;
+  color: #9b8e93;
+  font-size: 18px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 .edit-btn:hover {
+  background: #f7dfe8;
   color: #ad134e;
+  transform: scale(1.05);
 }
 .service-tags {
   display: flex;
@@ -1923,6 +2181,8 @@ onMounted(init)
   .page-header {
     align-items: stretch;
     flex-direction: column;
+    gap: 19px;
+    padding: 21px 18px 18px;
   }
   .page-header h1 {
     font-size: 27px;
@@ -1931,12 +2191,13 @@ onMounted(init)
   .page-header p {
     font-size: 11px;
   }
-  .header-actions > .q-btn:first-child {
+  .header-actions > .q-btn {
     height: 44px;
     flex: 1;
+    min-width: 0;
   }
-  .header-actions > .q-btn:last-child {
-    border: 1px solid #eee5e8;
+  .header-action {
+    padding-inline: 10px;
   }
   .salon-context {
     align-items: flex-start;
@@ -2005,10 +2266,18 @@ onMounted(init)
     font-size: 24px;
   }
   .summary-icon {
-    display: none;
+    width: 31px;
+    height: 31px;
+    border-radius: 10px;
+    font-size: 15px;
   }
   .summary-grid article {
+    align-items: center;
     justify-content: center;
+    flex-direction: column;
+    gap: 6px;
+    padding-inline: 6px;
+    text-align: center;
   }
   .salon-mark {
     display: none;

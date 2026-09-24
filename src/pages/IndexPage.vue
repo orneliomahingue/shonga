@@ -50,227 +50,241 @@
       :loading="loggingOut"
       @confirm="logout"
     />
-    <div class="topbar">
-      <div>
-        <p class="eyebrow">Olá, {{ firstName }} 👋</p>
-        <h1>Cuide de si, perto de si.</h1>
+    <template v-if="!isExploreMode">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">Olá, {{ firstName }} 👋</p>
+          <h1>Cuide de si, perto de si.</h1>
+        </div>
       </div>
-    </div>
-    <main>
-      <button class="location-row" type="button">
-        <q-icon name="location_on" size="18px" /><span>Maputo, Moçambique</span>
-      </button>
-      <q-input
-        v-model="search"
-        outlined
-        rounded
-        debounce="400"
-        placeholder="Salão ou serviço"
-        class="search-input"
-        @update:model-value="onSearchInput"
-        ><template #prepend><q-icon name="search" /></template
-        ><template #append><q-icon name="tune" color="primary" /></template
-      ></q-input>
-      <section class="hero-card">
-        <div class="hero-copy">
-          <span class="hero-label">SHONGA</span>
-          <h2>Realce a sua beleza</h2>
-          <p>Encontre serviços e profissionais disponíveis perto de si.</p>
-          <q-btn
-            unelevated
-            rounded
-            no-caps
-            label="Explorar salões"
-            class="hero-button"
-            @click="scrollToSalons"
-          />
-        </div>
-        <img :src="heroImage" alt="Profissional de beleza" />
-      </section>
-      <q-banner v-if="error" rounded class="bg-red-1 text-negative q-mb-md"
-        >{{ error }}
-        <template #action><q-btn flat dense label="Tentar novamente" @click="loadHome" /></template
-      ></q-banner>
-      <section>
-        <div class="section-heading"><h2>O que procura?</h2></div>
-        <div v-if="loading" class="category-grid">
-          <q-skeleton v-for="item in 6" :key="item" type="circle" size="50px" />
-        </div>
-        <div v-else class="category-grid">
-          <button
-            v-for="(category, index) in categories"
-            :key="category.id"
-            type="button"
-            class="category-item"
-            @click="filterCategory(category.name)"
-          >
-            <span :style="{ background: categoryColors[index % categoryColors.length] }"
-              ><q-icon :name="categoryIcon(category.slug)" /></span
-            >{{ category.name }}
-          </button>
-        </div>
-      </section>
-      <section v-if="loading || specialists.length" class="specialists-section">
-        <div class="section-heading">
-          <div>
-            <h2>Escolha o seu especialista</h2>
-            <small>Profissionais disponíveis na SHONGA</small>
+      <main>
+        <button class="location-row" type="button">
+          <q-icon name="location_on" size="18px" /><span>Maputo, Moçambique</span>
+        </button>
+        <q-input
+          v-model="search"
+          outlined
+          rounded
+          debounce="400"
+          placeholder="Salão ou serviço"
+          class="search-input"
+          @update:model-value="onSearchInput"
+          ><template #prepend><q-icon name="search" /></template
+          ><template #append><q-icon name="tune" color="primary" /></template
+        ></q-input>
+        <section class="hero-card">
+          <div class="hero-copy">
+            <span class="hero-label">SHONGA</span>
+            <h2>Realce a sua beleza</h2>
+            <p>Encontre serviços e profissionais disponíveis perto de si.</p>
+            <q-btn
+              unelevated
+              rounded
+              no-caps
+              label="Explorar salões"
+              class="hero-button"
+              @click="scrollToSalons"
+            />
           </div>
-          <div v-if="specialists.length" class="specialist-heading-actions">
-            <span>{{ specialists.length }} profissionais</span>
-            <div class="carousel-buttons">
-              <q-btn
-                flat
-                round
-                dense
-                icon="chevron_left"
-                aria-label="Profissionais anteriores"
-                :disable="specialistPage === 0"
-                @click="scrollSpecialists(-1)"
-              />
-              <q-btn
-                unelevated
-                round
-                dense
-                color="primary"
-                icon="chevron_right"
-                aria-label="Próximos profissionais"
-                :disable="specialistPage >= specialistPages - 1"
-                @click="scrollSpecialists(1)"
-              />
-            </div>
+          <img :src="heroImage" alt="Profissional de beleza" />
+        </section>
+        <q-banner v-if="error" rounded class="bg-red-1 text-negative q-mb-md"
+          >{{ error }}
+          <template #action
+            ><q-btn flat dense label="Tentar novamente" @click="loadHome" /></template
+        ></q-banner>
+        <section>
+          <div class="section-heading"><h2>O que procura?</h2></div>
+          <div v-if="loading" class="category-grid">
+            <q-skeleton v-for="item in 6" :key="item" type="circle" size="50px" />
           </div>
-        </div>
-        <div v-if="loading" class="specialist-list">
-          <div v-for="item in 5" :key="item" class="specialist-skeleton">
-            <q-skeleton type="circle" size="64px" /><q-skeleton width="50px" />
-          </div>
-        </div>
-        <div v-else class="specialist-carousel">
-          <div
-            ref="specialistCarousel"
-            class="specialist-list"
-            @scroll.passive="updateSpecialistPage"
-          >
+          <div v-else class="category-grid">
             <button
-              v-for="(person, index) in specialists"
-              :key="person.id"
+              v-for="(category, index) in categories"
+              :key="category.id"
               type="button"
-              class="specialist-card"
-              @click="openBooking(person.salonId)"
+              class="category-item"
+              @click="filterCategory(category.name)"
             >
-              <q-avatar
-                class="specialist-avatar"
-                :style="
-                  person.photoUrl
-                    ? {}
-                    : { background: specialistColors[index % specialistColors.length] }
-                "
-                ><img
-                  v-if="person.photoUrl"
-                  :src="person.photoUrl"
-                  :alt="person.firstName"
-                /><template v-else>{{ specialistInitials(person) }}</template></q-avatar
-              ><strong>{{ person.firstName }}</strong
-              ><small>{{ person.specialty || person.services[0]?.name || 'Especialista' }}</small
-              ><span>{{ person.salonName }}</span>
+              <span :style="{ background: categoryColors[index % categoryColors.length] }"
+                ><q-icon :name="categoryIcon(category.slug)" /></span
+              >{{ category.name }}
             </button>
           </div>
-          <div v-if="specialistPages > 1" class="carousel-dots" aria-hidden="true">
-            <span
-              v-for="page in specialistPages"
-              :key="page"
-              :class="{ active: specialistPage === page - 1 }"
-            ></span>
-          </div>
-        </div>
-      </section>
-      <section ref="salonsSection">
-        <div class="section-heading">
-          <div>
-            <h2>Salões disponíveis</h2>
-            <small v-if="!salonsLoading && !search && salons.length > salonLimit"
-              >Os melhor avaliados perto de si</small
-            >
-          </div>
-          <span v-if="!salonsLoading"
-            >{{ salons.length }} encontrado{{ salons.length === 1 ? '' : 's' }}</span
-          >
-        </div>
-        <div v-if="salonsLoading" class="salon-grid">
-          <q-skeleton v-for="item in 4" :key="item" height="220px" class="salon-skeleton" />
-        </div>
-        <template v-else-if="salons.length">
-          <div class="salon-grid">
-            <article
-              v-for="(salon, index) in visibleSalons"
-              :key="salon.id"
-              class="salon-card"
-              @click="openBooking(salon.id)"
-            >
-              <div class="salon-image">
-                <img
-                  :src="salon.logoUrl || fallbackImages[index % fallbackImages.length]"
-                  :alt="salon.name"
-                /><span class="salon-rating"
-                  ><q-icon name="star" />{{
-                    salon.rating.toLocaleString('pt-MZ', { minimumFractionDigits: 1 })
-                  }}</span
-                >
+        </section>
+        <section v-if="loading || specialists.length" class="specialists-section">
+          <div class="section-heading">
+            <div>
+              <h2>Escolha o seu especialista</h2>
+              <small>Profissionais disponíveis na SHONGA</small>
+            </div>
+            <div v-if="specialists.length" class="specialist-heading-actions">
+              <span>{{ specialists.length }} profissionais</span>
+              <div class="carousel-buttons">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  icon="chevron_left"
+                  aria-label="Profissionais anteriores"
+                  :disable="specialistPage === 0"
+                  @click="scrollSpecialists(-1)"
+                />
+                <q-btn
+                  unelevated
+                  round
+                  dense
+                  color="primary"
+                  icon="chevron_right"
+                  aria-label="Próximos profissionais"
+                  :disable="specialistPage >= specialistPages - 1"
+                  @click="scrollSpecialists(1)"
+                />
               </div>
-              <div class="salon-copy">
-                <h3>{{ salon.name }}</h3>
-                <p>{{ serviceNames(salon) }}</p>
-                <span class="salon-location"
-                  ><q-icon name="location_on" /> {{ salon.district }}</span
-                >
-                <div class="salon-footer">
-                  <b v-if="salon.minPrice">Desde {{ salon.minPrice.toLocaleString('pt-MZ') }} MT</b
-                  ><small v-else>&nbsp;</small
-                  ><q-btn
-                    round
-                    unelevated
-                    color="primary"
-                    icon="arrow_forward"
-                    size="sm"
-                    aria-label="Marcar agora"
-                    @click.stop="openBooking(salon.id)"
-                  />
+            </div>
+          </div>
+          <div v-if="loading" class="specialist-list">
+            <div v-for="item in 5" :key="item" class="specialist-skeleton">
+              <q-skeleton type="circle" size="64px" /><q-skeleton width="50px" />
+            </div>
+          </div>
+          <div v-else class="specialist-carousel">
+            <div
+              ref="specialistCarousel"
+              class="specialist-list"
+              @scroll.passive="updateSpecialistPage"
+            >
+              <button
+                v-for="(person, index) in specialists"
+                :key="person.id"
+                type="button"
+                class="specialist-card"
+                @click="openBooking(person.salonId)"
+              >
+                <q-avatar
+                  class="specialist-avatar"
+                  :style="
+                    person.photoUrl
+                      ? {}
+                      : { background: specialistColors[index % specialistColors.length] }
+                  "
+                  ><img
+                    v-if="person.photoUrl"
+                    :src="person.photoUrl"
+                    :alt="person.firstName"
+                  /><template v-else>{{ specialistInitials(person) }}</template></q-avatar
+                ><strong>{{ person.firstName }}</strong
+                ><small>{{ person.specialty || person.services[0]?.name || 'Especialista' }}</small
+                ><span>{{ person.salonName }}</span>
+              </button>
+            </div>
+            <div v-if="specialistPages > 1" class="carousel-dots" aria-hidden="true">
+              <span
+                v-for="page in specialistPages"
+                :key="page"
+                :class="{ active: specialistPage === page - 1 }"
+              ></span>
+            </div>
+          </div>
+        </section>
+        <section ref="salonsSection">
+          <div class="section-heading">
+            <div>
+              <h2>Salões disponíveis</h2>
+              <small v-if="!salonsLoading && !search && salons.length > salonLimit"
+                >Os melhor avaliados perto de si</small
+              >
+            </div>
+            <span v-if="!salonsLoading"
+              >{{ salons.length }} encontrado{{ salons.length === 1 ? '' : 's' }}</span
+            >
+          </div>
+          <div v-if="salonsLoading" class="salon-grid">
+            <q-skeleton v-for="item in 4" :key="item" height="220px" class="salon-skeleton" />
+          </div>
+          <template v-else-if="salons.length">
+            <div class="salon-grid">
+              <article
+                v-for="(salon, index) in visibleSalons"
+                :key="salon.id"
+                class="salon-card"
+                @click="openBooking(salon.id)"
+              >
+                <div class="salon-image">
+                  <img
+                    :src="salon.logoUrl || fallbackImages[index % fallbackImages.length]"
+                    :alt="salon.name"
+                  /><span class="salon-rating"
+                    ><q-icon name="star" />{{
+                      salon.rating.toLocaleString('pt-MZ', { minimumFractionDigits: 1 })
+                    }}</span
+                  >
                 </div>
-              </div>
-            </article>
+                <div class="salon-copy">
+                  <h3>{{ salon.name }}</h3>
+                  <p>{{ serviceNames(salon) }}</p>
+                  <span class="salon-location"
+                    ><q-icon name="location_on" /> {{ salon.district }}</span
+                  >
+                  <div class="salon-footer">
+                    <b v-if="salon.minPrice"
+                      >Desde {{ salon.minPrice.toLocaleString('pt-MZ') }} MT</b
+                    ><small v-else>&nbsp;</small
+                    ><q-btn
+                      round
+                      unelevated
+                      color="primary"
+                      icon="arrow_forward"
+                      size="sm"
+                      aria-label="Marcar agora"
+                      @click.stop="openBooking(salon.id)"
+                    />
+                  </div>
+                </div>
+              </article>
+            </div>
+            <q-btn
+              v-if="!search && salons.length > salonLimit"
+              flat
+              no-caps
+              rounded
+              color="primary"
+              class="show-more-btn"
+              :label="`Ver todos os ${salons.length} salões`"
+              icon-right="expand_more"
+              @click="salonLimit = salons.length"
+            />
+          </template>
+          <div v-else class="empty-state">
+            <q-icon name="storefront" />
+            <h3>Nenhum salão encontrado</h3>
+            <p v-if="search">Tente pesquisar por outro nome ou serviço.</p>
+            <p v-else>Ainda não existem salões aprovados com serviços activos.</p>
           </div>
-          <q-btn
-            v-if="!search && salons.length > salonLimit"
-            flat
-            no-caps
-            rounded
-            color="primary"
-            class="show-more-btn"
-            :label="`Ver todos os ${salons.length} salões`"
-            icon-right="expand_more"
-            @click="salonLimit = salons.length"
-          />
-        </template>
-        <div v-else class="empty-state">
-          <q-icon name="storefront" />
-          <h3>Nenhum salão encontrado</h3>
-          <p v-if="search">Tente pesquisar por outro nome ou serviço.</p>
-          <p v-else>Ainda não existem salões aprovados com serviços activos.</p>
-        </div>
-      </section>
-    </main>
+        </section>
+      </main>
+    </template>
+    <SalonExplorerMap
+      v-else
+      :salons="salons"
+      :loading="salonsLoading"
+      :error="error"
+      @retry="loadSalons"
+      @book="openBooking"
+    />
   </q-page>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { gql } from '@apollo/client/core'
 import { apolloClient } from 'boot/apollo'
 import { useAuthStore } from 'stores/auth-store'
 import ConfirmDialog from 'components/ConfirmDialog.vue'
+import SalonExplorerMap from 'components/SalonExplorerMap.vue'
 const router = useRouter(),
+  route = useRoute(),
   auth = useAuthStore(),
   search = ref(''),
   loading = ref(true),
@@ -288,6 +302,7 @@ const router = useRouter(),
 const visibleSalons = computed(() =>
   search.value.trim() ? salons.value : salons.value.slice(0, salonLimit.value),
 )
+const isExploreMode = computed(() => route.query.explore === '1')
 const specialistPages = computed(() => Math.max(1, Math.ceil(specialists.value.length / 4)))
 const heroImage =
   'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=85'
@@ -328,6 +343,8 @@ const SALONS = gql`
       rating
       district
       province
+      latitude
+      longitude
       minPrice
       services {
         id
@@ -448,7 +465,9 @@ async function logout() {
   padding: env(safe-area-inset-top, 0px) 18px 0;
   border-bottom: 1px solid rgba(238, 228, 231, 0.7);
   background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 10px 30px rgba(74, 28, 45, 0.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 10px 30px rgba(74, 28, 45, 0.06);
   backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
@@ -461,7 +480,10 @@ async function logout() {
   border-radius: 12px;
   background: none;
   cursor: pointer;
-  transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    background 0.18s ease;
 }
 .brand {
   gap: 10px;
@@ -494,11 +516,15 @@ async function logout() {
   color: #fff;
   font-size: 20px;
   font-weight: 800;
-  box-shadow: 0 7px 17px rgba(173, 18, 77, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 7px 17px rgba(173, 18, 77, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition: box-shadow 0.25s ease;
 }
 .brand:hover .brand-mark {
-  box-shadow: 0 9px 22px rgba(173, 18, 77, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 9px 22px rgba(173, 18, 77, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .brand-copy,
 .user-copy {
@@ -542,12 +568,18 @@ async function logout() {
   background: #fbe4ec;
   color: #ae154f;
   font-size: 14px;
-  box-shadow: 0 0 0 1px #f1dce4, 0 4px 12px rgba(173, 18, 77, 0.12);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow:
+    0 0 0 1px #f1dce4,
+    0 4px 12px rgba(173, 18, 77, 0.12);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 .profile-button:hover .header-avatar {
   transform: scale(1.05);
-  box-shadow: 0 0 0 1px #f1dce4, 0 6px 16px rgba(173, 18, 77, 0.2);
+  box-shadow:
+    0 0 0 1px #f1dce4,
+    0 6px 16px rgba(173, 18, 77, 0.2);
 }
 .header-divider {
   width: 1px;
@@ -557,7 +589,9 @@ async function logout() {
 .logout-button {
   background: #fff4f5;
   color: #b32434;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 .logout-button:hover {
   background: #ffe7e9;

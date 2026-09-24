@@ -2,7 +2,14 @@
   <q-page class="booking-page">
     <header class="booking-header">
       <div class="header-inner">
-        <q-btn flat round icon="arrow_back" aria-label="Voltar" @click="router.back()" />
+        <q-btn
+          flat
+          round
+          icon="arrow_back"
+          class="booking-back"
+          aria-label="Voltar"
+          @click="router.back()"
+        />
         <div>
           <span>NOVA MARCAÇÃO</span>
           <h1>Reserve o seu momento</h1>
@@ -16,6 +23,7 @@
           v-for="item in progressSteps"
           :key="item.number"
           :class="{ active: item.active, done: item.done }"
+          :aria-current="item.active ? 'step' : undefined"
         >
           <span
             ><q-icon v-if="item.done" name="check" /><template v-else>{{
@@ -46,6 +54,9 @@
           :options="salons"
           option-label="name"
           label="Escolha o salão"
+          dropdown-icon="expand_more"
+          popup-content-class="booking-salon-menu"
+          class="salon-picker"
           :loading="loading"
           :disable="loading"
           ><template #prepend><q-icon name="storefront" /></template
@@ -595,29 +606,51 @@ onMounted(init)
 }
 .booking-header {
   border-bottom: 1px solid #eee5e8;
-  background: linear-gradient(135deg, #fff 45%, #fff2f6);
+  background:
+    radial-gradient(circle at 88% 20%, rgba(198, 27, 89, 0.09), transparent 28%),
+    linear-gradient(135deg, #fff 45%, #fff4f7);
 }
 .header-inner {
   display: flex;
   width: min(calc(100% - 36px), 820px);
-  min-height: 130px;
+  min-height: 138px;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   margin: auto;
+}
+.booking-back {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  background: rgba(255, 255, 255, 0.75);
+  color: #4c4044;
+  font-size: 20px;
+  box-shadow: 0 4px 14px rgba(65, 28, 42, 0.07);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+.booking-back:hover {
+  background: #ad134e;
+  color: #fff;
+  transform: translateX(-2px);
 }
 .header-inner > div {
   min-width: 0;
 }
 .header-inner span {
   color: #ad134e;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 1.4px;
 }
 .header-inner h1 {
-  margin: 3px 0;
-  font-size: 28px;
-  line-height: 1.15;
+  margin: 5px 0 4px;
+  font-size: clamp(27px, 4vw, 34px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.7px;
 }
 .header-inner p {
   margin: 0;
@@ -627,32 +660,34 @@ onMounted(init)
 main {
   width: min(calc(100% - 36px), 820px);
   margin: auto;
-  padding: 18px 0 110px;
+  padding: 20px 0 110px;
 }
 .progress {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  margin-bottom: 16px;
-  padding: 13px 10px;
-  border: 1px solid #eee5e8;
-  border-radius: 17px;
+  margin-bottom: 18px;
+  padding: 15px 12px 13px;
+  border: 1px solid #eadfe3;
+  border-radius: 20px;
   background: #fff;
+  box-shadow: 0 7px 20px rgba(70, 27, 43, 0.045);
 }
 .progress > div {
   position: relative;
   display: flex;
   align-items: center;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
   color: #aca1a5;
 }
 .progress > div:not(:last-child):after {
   position: absolute;
   width: calc(100% - 34px);
-  height: 2px;
+  height: 3px;
   left: calc(50% + 17px);
-  top: 13px;
-  background: #eee7e9;
+  top: 14px;
+  border-radius: 999px;
+  background: #eee6e9;
   content: '';
 }
 .progress > div.done:not(:last-child):after {
@@ -661,10 +696,10 @@ main {
 .progress span {
   z-index: 1;
   display: grid;
-  width: 27px;
-  height: 27px;
+  width: 29px;
+  height: 29px;
   place-items: center;
-  border: 2px solid #eee7e9;
+  border: 2px solid #e8dfe2;
   border-radius: 50%;
   background: #fff;
   font-size: 9px;
@@ -675,6 +710,7 @@ main {
 }
 .progress .active span {
   border-color: #b31250;
+  box-shadow: 0 0 0 4px #fbe7ee;
 }
 .progress .done span {
   border-color: #b31250;
@@ -684,6 +720,7 @@ main {
 .progress small {
   font-size: 8px;
   font-weight: 700;
+  line-height: 1;
 }
 .error-banner {
   margin-bottom: 14px;
@@ -691,12 +728,14 @@ main {
   color: #ad2634;
 }
 .step-card {
-  margin-bottom: 13px;
-  padding: 20px;
-  border: 1px solid #eee4e7;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 7px 22px rgba(77, 27, 45, 0.045);
+  position: relative;
+  margin-bottom: 15px;
+  overflow: hidden;
+  padding: 24px;
+  border: 1px solid #eadfe3;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #fff 70%, #fff9fb);
+  box-shadow: 0 10px 28px rgba(77, 27, 45, 0.06);
 }
 .step-card.complete {
   border-color: #ead6dd;
@@ -704,19 +743,20 @@ main {
 .step-heading {
   display: flex;
   align-items: center;
-  gap: 11px;
-  margin-bottom: 16px;
+  gap: 13px;
+  margin-bottom: 20px;
 }
 .step-heading > span {
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  height: 42px;
   flex: none;
   place-items: center;
-  border-radius: 12px;
-  background: #f8e5ec;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #fbe8ef, #f6dce6);
   color: #ad134e;
-  font-size: 19px;
+  font-size: 20px;
+  box-shadow: inset 0 0 0 1px rgba(173, 19, 78, 0.05);
 }
 .step-card.complete .step-heading > span {
   background: #dff6ea;
@@ -729,13 +769,51 @@ main {
   letter-spacing: 1px;
 }
 .step-heading h2 {
-  margin: 0;
-  font-size: 17px;
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 1.25;
+  letter-spacing: -0.2px;
 }
 .step-heading p {
-  margin: 2px 0 0;
+  margin: 5px 0 0;
   color: #918589;
   font-size: 9px;
+}
+.salon-picker :deep(.q-field__control) {
+  min-height: 58px;
+  border-radius: 18px;
+  background: #fff;
+  transition:
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+.salon-picker:hover :deep(.q-field__control),
+.salon-picker.q-field--focused :deep(.q-field__control) {
+  background: #fffafb;
+  box-shadow: 0 7px 18px rgba(173, 19, 78, 0.08);
+}
+.salon-picker :deep(.q-field__prepend) {
+  color: #ad134e;
+}
+.salon-picker :deep(.q-field__label) {
+  color: #796d71;
+  font-weight: 600;
+}
+:global(.booking-salon-menu) {
+  margin-top: 6px;
+  padding: 7px;
+  border: 1px solid #eadfe3;
+  border-radius: 17px;
+  box-shadow: 0 17px 42px rgba(67, 27, 42, 0.16);
+}
+:global(.booking-salon-menu .q-item) {
+  min-height: 58px;
+  margin-block: 2px;
+  border-radius: 12px;
+}
+:global(.booking-salon-menu .q-item--active) {
+  background: #fff0f5;
+  color: #ad134e;
 }
 .selected-salon {
   display: flex;

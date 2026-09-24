@@ -13,16 +13,16 @@ const serviceSchema = z.object({
   salonId: z.string().uuid(),
   categoryId: z.string().uuid(),
   name: z.string().trim().min(2).max(120),
-  description: z.string().trim().max(2000).optional(),
-  price: z.number().positive().max(10000000),
+  description: z.string().trim().max(2000).nullable().optional(),
+  price: z.number().min(10).max(10000000),
   durationMin: z.number().int().min(5).max(1440),
   imageUrl: z.url().optional(),
 })
 const serviceUpdateSchema = z.object({
   categoryId: z.string().uuid(),
   name: z.string().trim().min(2).max(120),
-  description: z.string().trim().max(2000).optional(),
-  price: z.number().positive().max(10000000),
+  description: z.string().trim().max(2000).nullable().optional(),
+  price: z.number().min(10).max(10000000),
   durationMin: z.number().int().min(5).max(1440),
   imageUrl: z.url().optional(),
 })

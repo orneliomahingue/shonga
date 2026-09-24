@@ -9,26 +9,40 @@
       </div>
     </header>
     <section v-if="success" class="success-card">
-      <span class="success-icon"><q-icon name="check" /></span><small>CADASTRO RECEBIDO</small>
-      <h2>{{ submittedSalon }} foi enviado para aprovação</h2>
+      <span class="success-icon"><q-icon name="task_alt" /></span>
+      <span class="success-label"><q-icon name="verified" /> CADASTRO RECEBIDO</span>
+      <h2>
+        <strong>{{ submittedSalon }}</strong> foi enviado para aprovação
+      </h2>
       <p>
         A nossa equipa irá validar os dados. Entretanto, já pode preparar os serviços e os
         especialistas do salão.
       </p>
-      <div>
+      <div class="approval-progress" aria-label="Estado do cadastro">
+        <div class="active">
+          <span><q-icon name="check" /></span><small>Recebido</small>
+        </div>
+        <div><span>2</span><small>Em análise</small></div>
+        <div><span>3</span><small>Publicado</small></div>
+      </div>
+      <div class="success-actions">
         <q-btn
           unelevated
           rounded
           no-caps
           color="primary"
+          icon="space_dashboard"
           label="Ir para gestão do salão"
+          class="success-primary"
           to="/gestao-salao"
         /><q-btn
           flat
           rounded
           no-caps
           color="primary"
+          icon="add_business"
           label="Cadastrar outro salão"
+          class="success-secondary"
           @click="resetForm"
         />
       </div>
@@ -716,49 +730,147 @@ onMounted(loadLocations)
   font-weight: 800;
 }
 .success-card {
+  position: relative;
   max-width: 620px;
   margin: 45px auto;
-  padding: 55px 40px;
-  border: 1px solid #e8eee9;
-  border-radius: 26px;
-  background: #fff;
-  box-shadow: 0 14px 40px rgba(40, 91, 62, 0.08);
+  overflow: hidden;
+  padding: 52px 44px 42px;
+  border: 1px solid #dfece5;
+  border-radius: 30px;
+  background: radial-gradient(circle at 50% 0, rgba(42, 157, 103, 0.08), transparent 32%), #fff;
+  box-shadow: 0 18px 50px rgba(40, 91, 62, 0.1);
   text-align: center;
+}
+.success-card::before {
+  position: absolute;
+  top: 0;
+  right: 25%;
+  left: 25%;
+  height: 3px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, #52bd8b, #177047);
+  content: '';
 }
 .success-icon {
   display: grid;
-  width: 76px;
-  height: 76px;
-  margin: 0 auto 18px;
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 16px;
   place-items: center;
-  border-radius: 25px;
-  background: #def6e9;
+  border-radius: 26px;
+  background: linear-gradient(145deg, #e3f8ed, #ccefe0);
   color: #177047;
-  font-size: 39px;
+  font-size: 40px;
+  box-shadow: 0 10px 24px rgba(23, 112, 71, 0.13);
 }
-.success-card > small {
+.success-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eef9f3;
   color: #177047;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   letter-spacing: 1.2px;
 }
+.success-label .q-icon {
+  font-size: 13px;
+}
 .success-card h2 {
   max-width: 460px;
-  margin: 7px auto 10px;
-  font-size: 25px;
-  line-height: 1.3;
+  margin: 12px auto 10px;
+  color: #33292d;
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.4px;
+}
+.success-card h2 strong {
+  font-weight: 800;
 }
 .success-card p {
   max-width: 470px;
-  margin: 0 auto 22px;
+  margin: 0 auto 25px;
   color: #817579;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.6;
 }
-.success-card > div {
+.approval-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 410px;
+  margin: 0 auto 26px;
+  padding: 14px 12px;
+  border: 1px solid #e6eee9;
+  border-radius: 17px;
+  background: #f8fbf9;
+}
+.approval-progress > div {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  color: #a3999d;
+}
+.approval-progress > div:not(:last-child)::after {
+  position: absolute;
+  top: 13px;
+  left: calc(50% + 19px);
+  width: calc(100% - 38px);
+  height: 2px;
+  border-radius: 999px;
+  background: #e5dfe2;
+  content: '';
+}
+.approval-progress span {
+  z-index: 1;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 2px solid #e5dfe2;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 8px;
+  font-weight: 800;
+}
+.approval-progress small {
+  font-size: 8px;
+  font-weight: 700;
+}
+.approval-progress .active {
+  color: #177047;
+}
+.approval-progress .active span {
+  border-color: #249263;
+  background: #249263;
+  color: #fff;
+  box-shadow: 0 0 0 4px #e0f3e9;
+}
+.approval-progress .active::after {
+  background: linear-gradient(90deg, #52bd8b, #e5dfe2) !important;
+}
+.success-actions {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
+}
+.success-actions .q-btn {
+  min-height: 46px;
+  padding-inline: 19px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.success-primary {
+  min-width: 225px;
+  background: linear-gradient(135deg, #ad134e, #d62b6a) !important;
+  box-shadow: 0 9px 20px rgba(173, 19, 78, 0.2);
+}
+.success-secondary {
+  background: #fff2f6;
 }
 @media (max-width: 720px) {
   .registration-layout {
@@ -829,11 +941,16 @@ onMounted(loadLocations)
   }
   .success-card {
     margin: 20px auto;
-    padding: 42px 20px;
+    padding: 40px 18px 28px;
   }
-  .success-card > div {
+  .success-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+  .success-actions .q-btn,
+  .success-primary {
+    width: 100%;
+    min-width: 0;
   }
 }
 @media (max-width: 360px) {

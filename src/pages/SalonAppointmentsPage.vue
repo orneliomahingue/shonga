@@ -5,6 +5,7 @@
         flat
         round
         icon="arrow_back"
+        class="header-back"
         aria-label="Voltar"
         @click="router.push('/gestao-salao')"
       /><span class="header-icon"><q-icon name="event_available" /></span>
@@ -71,21 +72,25 @@
           /></section
       ></transition>
       <section class="summary-grid">
-        <article :class="{ clickable: pendingCount }" @click="pendingCount && focusPending()">
-          <span class="summary-icon pending"><q-icon name="hourglass_empty" /></span>
+        <article
+          class="summary-card pending-card"
+          :class="{ clickable: pendingCount }"
+          @click="pendingCount && focusPending()"
+        >
+          <span class="summary-icon pending"><q-icon name="hourglass_top" /></span>
           <div>
             <strong>{{ pendingCount }}</strong
             ><small>Por confirmar</small>
           </div>
         </article>
-        <article>
-          <span class="summary-icon today"><q-icon name="today" /></span>
+        <article class="summary-card today-card">
+          <span class="summary-icon today"><q-icon name="calendar_today" /></span>
           <div>
             <strong>{{ todayCount }}</strong
             ><small>Hoje</small>
           </div>
         </article>
-        <article>
+        <article class="summary-card progress-card">
           <span class="summary-icon progress"><q-icon name="pending_actions" /></span>
           <div>
             <strong>{{ inProgressCount }}</strong
@@ -96,10 +101,20 @@
       <section class="panel">
         <div class="panel-toolbar">
           <div class="tabs">
-            <button type="button" :class="{ active: tab === 'active' }" @click="tab = 'active'">
+            <button
+              type="button"
+              :class="{ active: tab === 'active' }"
+              :aria-pressed="tab === 'active'"
+              @click="tab = 'active'"
+            >
               Activas <span>{{ active.length }}</span>
             </button>
-            <button type="button" :class="{ active: tab === 'history' }" @click="tab = 'history'">
+            <button
+              type="button"
+              :class="{ active: tab === 'history' }"
+              :aria-pressed="tab === 'history'"
+              @click="tab = 'history'"
+            >
               Histórico <span>{{ history.length }}</span>
             </button>
           </div>
@@ -234,6 +249,16 @@
                   : 'Atendimentos concluídos, cancelados ou faltas aparecerão aqui.'
             }}
           </p>
+          <q-btn
+            v-if="!search && tab === 'active'"
+            flat
+            rounded
+            no-caps
+            icon="refresh"
+            label="Actualizar agenda"
+            class="empty-refresh"
+            @click="loadAppointments"
+          />
         </div>
       </section>
     </template>
@@ -544,13 +569,36 @@ onMounted(init)
   color: #30272a;
 }
 .page-header {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 13px;
-  margin-bottom: 25px;
+  gap: 14px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  padding: 22px 24px;
+  border: 1px solid #eee1e6;
+  border-radius: 24px;
+  background: linear-gradient(125deg, #fff 58%, #fff4f7);
+  box-shadow: 0 10px 30px rgba(71, 28, 44, 0.055);
 }
 .page-header > .q-btn {
   color: #685e61;
+}
+.header-back {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 14px rgba(65, 28, 42, 0.07);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+.header-back:hover {
+  background: #ad134e;
+  color: #fff;
+  transform: translateX(-2px);
 }
 .header-icon {
   display: grid;
@@ -574,9 +622,10 @@ onMounted(init)
   letter-spacing: 1.4px;
 }
 .page-header h1 {
-  margin: 3px 0;
-  font-size: 29px;
-  line-height: 1.15;
+  margin: 5px 0 4px;
+  font-size: 31px;
+  line-height: 1.08;
+  letter-spacing: -0.6px;
 }
 .page-header p {
   margin: 0;
@@ -691,21 +740,48 @@ onMounted(init)
 }
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
 }
 .summary-grid article {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 14px;
-  border: 1px solid #eee5e8;
-  border-radius: 16px;
-  background: #fff;
+  gap: 12px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 15px;
+  border: 1px solid color-mix(in srgb, var(--metric-color) 16%, #eee5e8);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff 56%, var(--metric-surface));
+  box-shadow: 0 7px 20px rgba(71, 28, 44, 0.045);
   transition:
     box-shadow 0.2s,
     transform 0.2s;
+}
+.summary-grid article::after {
+  position: absolute;
+  top: 0;
+  right: 14px;
+  left: 14px;
+  height: 2px;
+  border-radius: 0 0 999px 999px;
+  background: var(--metric-color);
+  content: '';
+  opacity: 0.55;
+}
+.pending-card {
+  --metric-color: #a87408;
+  --metric-surface: #fff9eb;
+}
+.today-card {
+  --metric-color: #b31250;
+  --metric-surface: #fff4f8;
+}
+.progress-card {
+  --metric-color: #3462a4;
+  --metric-surface: #f3f7ff;
 }
 .summary-grid article.clickable {
   cursor: pointer;
@@ -737,20 +813,24 @@ onMounted(init)
 }
 .summary-grid article > div {
   display: flex;
+  min-width: 0;
   flex-direction: column;
 }
 .summary-grid strong {
-  font-size: 21px;
-  line-height: 1.1;
+  font-size: 23px;
+  line-height: 1;
+  letter-spacing: -0.4px;
 }
 .summary-grid small {
+  margin-top: 4px;
   color: #8e8286;
   font-size: 9px;
+  font-weight: 600;
 }
 .panel {
   overflow: hidden;
   border: 1px solid #eadfe3;
-  border-radius: 22px;
+  border-radius: 24px;
   background: #fff;
   box-shadow: 0 10px 30px rgba(69, 27, 42, 0.055);
 }
@@ -759,40 +839,60 @@ onMounted(init)
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  padding: 8px 15px;
+  padding: 10px;
   border-bottom: 1px solid #eee8ea;
 }
 .tabs {
   display: flex;
   flex: none;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #eee4e8;
+  border-radius: 14px;
+  background: #faf6f8;
 }
 .tabs button {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 12px 17px;
+  padding: 9px 15px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: 10px;
   background: none;
   color: #8a7e82;
   font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 .tabs button.active {
-  border-color: #b31250;
+  background: #fff;
   color: #aa124d;
+  box-shadow: 0 4px 12px rgba(77, 27, 45, 0.09);
 }
 .tabs button span {
   padding: 2px 7px;
   border-radius: 8px;
-  background: #f3edef;
+  background: #eee6e9;
   font-size: 9px;
 }
+.tabs button.active span {
+  background: #f9e1ea;
+}
 .search-box {
-  max-width: 230px;
+  max-width: 250px;
 }
 .search-box :deep(.q-field__control) {
-  height: 38px;
+  height: 42px;
+  border-radius: 14px;
   background: #faf7f8;
+  transition: box-shadow 0.2s ease;
+}
+.search-box.q-field--focused :deep(.q-field__control) {
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(173, 19, 78, 0.08);
 }
 .appointment-groups {
   padding: 8px 15px 15px;
@@ -1010,19 +1110,21 @@ onMounted(init)
   min-width: 190px;
 }
 .empty {
+  min-height: 270px;
   padding: 55px 20px;
   text-align: center;
 }
 .empty > span {
   display: grid;
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   margin: auto;
   place-items: center;
   border-radius: 19px;
-  background: #f7e9ee;
+  background: linear-gradient(145deg, #faeaf0, #f4dfe8);
   color: #bd6f8b;
-  font-size: 28px;
+  font-size: 29px;
+  box-shadow: 0 8px 20px rgba(173, 19, 78, 0.08);
 }
 .empty strong {
   display: block;
@@ -1034,6 +1136,14 @@ onMounted(init)
   max-width: 320px;
   color: #918589;
   font-size: 11px;
+}
+.empty-refresh {
+  margin-top: 16px;
+  padding-inline: 16px;
+  background: #f9e8ee;
+  color: #a8124c;
+  font-size: 10px;
+  font-weight: 800;
 }
 .empty-state {
   padding: 90px 20px;
