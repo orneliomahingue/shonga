@@ -56,10 +56,10 @@
           <span class="alert-icon"><q-icon name="notifications_active" /></span>
           <div>
             <strong
-              >{{ pendingCount }} marcaç{{ pendingCount === 1 ? 'ão' : 'ões' }} por
-              confirmar</strong
+              >{{ pendingCount }} marcaç{{ pendingCount === 1 ? 'ão' : 'ões' }} aguardam
+              pagamento</strong
             >
-            <small>Confirme para garantir o horário do especialista ao cliente.</small>
+            <small>A confirmação será automática depois do pagamento M-Pesa.</small>
           </div>
           <q-btn
             flat
@@ -80,7 +80,7 @@
           <span class="summary-icon pending"><q-icon name="hourglass_top" /></span>
           <div>
             <strong>{{ pendingCount }}</strong
-            ><small>Por confirmar</small>
+            ><small>Aguardam pagamento</small>
           </div>
         </article>
         <article class="summary-card today-card">
@@ -183,6 +183,7 @@
                 <div class="appointment-side">
                   <strong>{{ item.total.toLocaleString('pt-MZ') }} MT</strong>
                   <div class="appointment-actions">
+                    <span v-if="['PENDING', 'AWAITING_PAYMENT'].includes(item.status)" class="waiting-payment"><q-icon name="payments" /> Aguarda pagamento<q-tooltip>A marcação será confirmada automaticamente após o pagamento M-Pesa</q-tooltip></span>
                     <q-btn
                       v-if="nextStep[item.status]"
                       unelevated
@@ -193,7 +194,7 @@
                       :icon="nextStep[item.status].icon"
                       :label="nextStep[item.status].label"
                       :loading="acting === item.id"
-                      @click="advance(item)"
+                      @click="item.status === 'IN_PROGRESS' && item.payment?.status === 'HELD' ? askConfirmService(item) : advance(item)"
                     /><q-btn
                       v-if="canCancel(item.status) || canNoShow(item.status)"
                       flat
@@ -278,6 +279,7 @@
           {{ stopTarget?.customer.firstName }} será
           {{ stopStatus === 'CANCELLED' ? 'cancelada' : 'assinalada como falta do cliente' }}.
         </p>
+        <p v-if="stopStatus === 'CANCELLED'" class="refund-warning"><q-icon name="info_outline" /> Se existir pagamento confirmado, o cliente receberá 97%; os restantes 3% são a taxa da carteira móvel.</p>
         <q-input v-model="stopReason" outlined rounded type="textarea" label="Motivo (opcional)" />
         <q-card-actions align="right"
           ><q-btn v-close-popup flat rounded no-caps label="Voltar" /><q-btn
@@ -289,15 +291,26 @@
             :loading="stopping"
             @click="confirmStop" /></q-card-actions></q-card
     ></q-dialog>
+    <q-dialog v-model="confirmDialog"><q-card class="confirmation-service-card">
+      <button v-close-popup class="confirmation-close" aria-label="Fechar"><q-icon name="close" /></button>
+      <div class="confirmation-service-head"><span><q-icon name="verified_user" /></span><small>FINALIZAR ATENDIMENTO</small><h2>Confirmar serviço</h2><p>Valide o código do cliente para concluir a marcação e receber o pagamento.</p></div>
+      <div v-if="confirmTarget" class="confirmation-booking"><q-avatar>{{ initials(confirmTarget.customer) }}</q-avatar><div><small>CLIENTE E SERVIÇO</small><strong>{{ confirmTarget.customer.firstName }} {{ confirmTarget.customer.lastName }}</strong><p>{{ confirmTarget.serviceName }} · {{ confirmTarget.total.toLocaleString('pt-MZ') }} MT</p></div></div>
+      <div class="proof-mode"><button type="button" :class="{active:serviceProofMode==='pin'}" @click="selectProofMode('pin')"><q-icon name="dialpad" /> PIN</button><button type="button" :class="{active:serviceProofMode==='qr'}" @click="selectProofMode('qr')"><q-icon name="qr_code_scanner" /> QR Code</button></div>
+      <div v-if="serviceProofMode==='pin'" class="proof-field"><q-input v-model="serviceProof" outlined label="PIN de 6 dígitos" mask="######" unmasked-value maxlength="6" autofocus><template #prepend><q-icon name="password" /></template></q-input><small>O PIN encontra-se no comprovativo de pagamento do cliente.</small></div>
+      <div v-else class="qr-scanner"><div class="camera-frame" :class="{scanned:qrScanStatus==='success'}"><video ref="qrVideo" autoplay muted playsinline></video><div class="scan-corners"><i></i><i></i><i></i><i></i></div><div v-if="qrScanStatus==='starting'" class="camera-overlay"><q-spinner color="white" size="34px" /><span>A iniciar câmara…</span></div><div v-else-if="qrScanStatus==='success'" class="camera-overlay success"><q-icon name="check_circle" /><strong>QR Code reconhecido</strong></div></div><p v-if="qrScanError" class="camera-error"><q-icon name="videocam_off" /><span>{{ qrScanError }}</span><q-btn flat dense no-caps label="Tentar novamente" @click="startQrScanner" /></p><p v-else-if="qrScanStatus==='scanning'" class="camera-help"><q-icon name="center_focus_strong" /> Aponte a câmara traseira para o QR Code do cliente.</p></div>
+      <div class="release-notice"><q-icon name="account_balance_wallet" /><div><strong>Libertação imediata do valor</strong><small>Ao confirmar, a marcação será concluída e o valor retido será disponibilizado ao salão.</small></div></div>
+      <q-card-actions class="confirmation-actions"><q-btn v-close-popup flat rounded no-caps label="Cancelar" /><q-btn unelevated rounded no-caps color="positive" icon="task_alt" label="Confirmar e receber" :disable="!validServiceProof" :loading="confirmingService" @click="submitServiceConfirmation" /></q-card-actions>
+    </q-card></q-dialog>
   </q-page>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuasar } from 'quasar'
 import { gql } from '@apollo/client/core'
 import { apolloClient } from 'boot/apollo'
+import { BrowserQRCodeReader } from '@zxing/browser'
 const router = useRouter(),
   $q = useQuasar(),
   loading = ref(true),
@@ -313,15 +326,12 @@ const router = useRouter(),
   stopTarget = ref(null),
   stopStatus = ref('CANCELLED'),
   stopReason = ref('')
+const confirmDialog=ref(false),confirmingService=ref(false),confirmTarget=ref(null),serviceProof=ref(''),serviceProofMode=ref('pin')
+const qrVideo=ref(null),qrScanStatus=ref('idle'),qrScanError=ref('')
+let qrReader=null,qrControls=null
+const validServiceProof=computed(()=>serviceProofMode.value==='pin'?/^\d{6}$/.test(serviceProof.value):serviceProof.value.trim().length>20)
 const activeStatuses = ['PENDING', 'AWAITING_PAYMENT', 'CONFIRMED', 'IN_PROGRESS']
 const nextStep = {
-  PENDING: { status: 'CONFIRMED', label: 'Confirmar', icon: 'check_circle', color: 'primary' },
-  AWAITING_PAYMENT: {
-    status: 'CONFIRMED',
-    label: 'Confirmar',
-    icon: 'check_circle',
-    color: 'primary',
-  },
   CONFIRMED: { status: 'IN_PROGRESS', label: 'Fazer check-in', icon: 'login', color: 'primary' },
   IN_PROGRESS: {
     status: 'COMPLETED',
@@ -330,6 +340,14 @@ const nextStep = {
     color: 'positive',
   },
 }
+const CONFIRM_SERVICE = gql`mutation ConfirmService($id:ID!,$proof:String!){confirmService(appointmentId:$id,proof:$proof){id status}}`
+function stopQrScanner(){qrControls?.stop();qrControls=null;qrReader=null;if(qrVideo.value?.srcObject){for(const track of qrVideo.value.srcObject.getTracks())track.stop();qrVideo.value.srcObject=null}if(qrScanStatus.value!=='success')qrScanStatus.value='idle'}
+async function startQrScanner(){stopQrScanner();qrScanError.value='';qrScanStatus.value='starting';await nextTick();try{if(!navigator.mediaDevices?.getUserMedia)throw new Error('Este navegador não permite acesso à câmara.');qrReader=new BrowserQRCodeReader();qrControls=await qrReader.decodeFromConstraints({audio:false,video:{facingMode:{ideal:'environment'}}},qrVideo.value,(result)=>{if(!result||qrScanStatus.value==='success')return;serviceProof.value=result.getText();qrScanStatus.value='success';qrControls?.stop();$q.notify({type:'positive',message:'QR Code reconhecido'})});qrScanStatus.value='scanning'}catch(e){qrScanStatus.value='error';qrScanError.value=e?.name==='NotAllowedError'?'Permissão da câmara negada. Autorize o acesso nas definições do navegador.':e?.name==='NotFoundError'?'Nenhuma câmara foi encontrada neste dispositivo.':e.message||'Não foi possível iniciar a câmara.'}}
+async function selectProofMode(mode){serviceProofMode.value=mode;serviceProof.value='';qrScanError.value='';if(mode==='qr')await startQrScanner();else stopQrScanner()}
+function askConfirmService(item){confirmTarget.value=item;serviceProof.value='';serviceProofMode.value='pin';qrScanStatus.value='idle';qrScanError.value='';confirmDialog.value=true}
+async function submitServiceConfirmation(){if(!validServiceProof.value)return;confirmingService.value=true;error.value='';try{await apolloClient.mutate({mutation:CONFIRM_SERVICE,variables:{id:confirmTarget.value.id,proof:serviceProof.value.trim()}});confirmDialog.value=false;await loadAppointments();$q.notify({type:'positive',message:'Serviço confirmado e valor libertado ao salão'})}catch(e){error.value=e.message;$q.notify({type:'negative',message:e.message})}finally{confirmingService.value=false}}
+watch(confirmDialog,value=>{if(!value)stopQrScanner()})
+onBeforeUnmount(stopQrScanner)
 const canCancel = (status) => ['PENDING', 'AWAITING_PAYMENT', 'CONFIRMED'].includes(status)
 const canNoShow = (status) => status === 'CONFIRMED'
 const isArchived = (item) => item.status === 'CANCELLED' || item.status === 'NO_SHOW'
@@ -442,6 +460,7 @@ const APPOINTMENTS = gql`
       endsAt
       total
       status
+      payment { status }
     }
   }
 `
@@ -1106,6 +1125,19 @@ onMounted(init)
 .appointment-actions .q-btn {
   font-size: 9px;
 }
+.waiting-payment {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: #fff1d6;
+  color: #946208;
+  font-size: 8px;
+  font-weight: 800;
+  white-space: nowrap;
+}
 .action-menu {
   min-width: 190px;
 }
@@ -1187,6 +1219,253 @@ onMounted(init)
   margin-bottom: 4px;
   text-align: left;
 }
+.confirmation-service-card {
+  position: relative;
+  width: min(94vw, 500px);
+  overflow: hidden;
+  border: 1px solid #dcebe1;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(25, 53, 35, 0.25);
+}
+.confirmation-close {
+  position: absolute;
+  z-index: 2;
+  top: 17px;
+  right: 17px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.75);
+  color: #567061;
+}
+.confirmation-service-head {
+  padding: 29px 30px 24px;
+  background: linear-gradient(145deg, #f3fbf6, #e8f6ed);
+  text-align: left;
+}
+.confirmation-service-head > span {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 14px;
+  place-items: center;
+  border-radius: 15px;
+  background: #168a4c;
+  color: #fff;
+  font-size: 25px;
+  box-shadow: 0 9px 23px rgba(22, 138, 76, 0.2);
+}
+.confirmation-service-head small,
+.confirmation-booking small {
+  color: #16814a;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 1.2px;
+}
+.confirmation-service-head h2 {
+  margin: 4px 0 6px;
+  color: #203028;
+  font-size: 28px;
+  letter-spacing: -0.6px;
+}
+.confirmation-service-head p {
+  max-width: 390px;
+  margin: 0;
+  color: #697a70;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.confirmation-booking {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 25px 14px;
+  padding: 13px;
+  border: 1px solid #e5ede8;
+  border-radius: 16px;
+  background: #fbfdfb;
+}
+.confirmation-booking .q-avatar {
+  flex: 0 0 auto;
+  background: #e5f3e9;
+  color: #187747;
+  font-size: 12px;
+  font-weight: 800;
+}
+.confirmation-booking > div {
+  display: grid;
+  min-width: 0;
+}
+.confirmation-booking strong {
+  margin-top: 1px;
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.confirmation-booking p {
+  margin: 2px 0 0;
+  color: #78857e;
+  font-size: 10px;
+}
+.proof-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 0 25px 15px;
+  padding: 4px;
+  border-radius: 13px;
+  background: #f1f5f2;
+}
+.proof-mode button {
+  display: flex;
+  min-height: 39px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #718078;
+  font-size: 11px;
+  font-weight: 700;
+}
+.proof-mode button.active {
+  background: #fff;
+  color: #147a45;
+  box-shadow: 0 3px 12px rgba(38, 75, 50, 0.09);
+}
+.proof-field {
+  margin: 0 25px;
+}
+.proof-field :deep(.q-field__control) {
+  border-radius: 15px;
+}
+.proof-field > small {
+  display: block;
+  margin: 6px 4px 0;
+  color: #89958e;
+  font-size: 9px;
+}
+.qr-scanner {
+  margin: 0 25px;
+}
+.camera-frame {
+  position: relative;
+  height: 235px;
+  overflow: hidden;
+  border-radius: 17px;
+  background: #17231c;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.camera-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.camera-frame.scanned video {
+  opacity: 0.42;
+}
+.scan-corners {
+  position: absolute;
+  width: 145px;
+  height: 145px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.scan-corners i {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-color: #6ee29b;
+  border-style: solid;
+}
+.scan-corners i:nth-child(1) { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 8px 0 0; }
+.scan-corners i:nth-child(2) { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 8px 0 0; }
+.scan-corners i:nth-child(3) { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 8px; }
+.scan-corners i:nth-child(4) { right: 0; bottom: 0; border-width: 0 3px 3px 0; border-radius: 0 0 8px; }
+.camera-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 9px;
+  background: rgba(15, 27, 20, 0.72);
+  color: #fff;
+  font-size: 10px;
+}
+.camera-overlay.success {
+  background: rgba(13, 105, 57, 0.75);
+}
+.camera-overlay.success .q-icon {
+  font-size: 48px;
+}
+.camera-help,
+.camera-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 8px 3px 0;
+  color: #718078;
+  font-size: 9px;
+}
+.camera-error {
+  flex-wrap: wrap;
+  color: #a42e3b;
+}
+.camera-error .q-btn {
+  margin-left: auto;
+  color: #16814a;
+  font-size: 9px;
+}
+.release-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 17px 25px 0;
+  padding: 12px;
+  border-radius: 13px;
+  background: #eff8f2;
+  color: #277149;
+}
+.release-notice > .q-icon {
+  margin-top: 1px;
+  font-size: 21px;
+}
+.release-notice > div {
+  display: grid;
+}
+.release-notice strong {
+  font-size: 10px;
+}
+.release-notice small {
+  margin-top: 2px;
+  color: #668070;
+  font-size: 8px;
+  line-height: 1.45;
+}
+.confirmation-actions {
+  display: grid;
+  grid-template-columns: 0.8fr 1.4fr;
+  gap: 8px;
+  margin-top: 21px;
+  padding: 17px 25px 22px;
+  border-top: 1px solid #edf1ee;
+}
+.confirmation-actions .q-btn {
+  min-height: 44px;
+  font-size: 11px;
+  font-weight: 700;
+}
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition:
@@ -1201,6 +1480,36 @@ onMounted(init)
 @media (max-width: 650px) {
   .appointments-page {
     padding: 24px 15px 95px;
+  }
+  .confirmation-service-card {
+    width: calc(100vw - 18px);
+    border-radius: 23px;
+  }
+  .confirmation-service-head {
+    padding: 23px 21px 20px;
+  }
+  .confirmation-service-head > span {
+    width: 43px;
+    height: 43px;
+    margin-bottom: 11px;
+    font-size: 22px;
+  }
+  .confirmation-service-head h2 {
+    font-size: 24px;
+  }
+  .confirmation-booking,
+  .proof-mode,
+  .proof-field,
+  .qr-scanner,
+  .release-notice {
+    margin-right: 18px;
+    margin-left: 18px;
+  }
+  .camera-frame {
+    height: 220px;
+  }
+  .confirmation-actions {
+    padding: 15px 18px 19px;
   }
   .header-icon {
     display: none;

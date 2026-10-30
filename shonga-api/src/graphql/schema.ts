@@ -7,6 +7,7 @@ import { catalogResolvers, catalogTypeDefs } from '../catalog/catalog.graphql.js
 import { employeesResolvers, employeesTypeDefs } from '../employees/employees.graphql.js'
 import { schedulesResolvers, schedulesTypeDefs } from '../schedules/schedules.graphql.js'
 import { appointmentsResolvers, appointmentsTypeDefs } from '../appointments/appointments.graphql.js'
+import { paymentsResolvers, paymentsTypeDefs } from '../payments/payments.graphql.js'
 
 export const typeDefs = gql`
   type Health { status: String!, database: String!, timestamp: String! }
@@ -19,10 +20,11 @@ export const typeDefs = gql`
   ${employeesTypeDefs}
   ${schedulesTypeDefs}
   ${appointmentsTypeDefs}
+  ${paymentsTypeDefs}
 `
 
 export const resolvers = {
-  Mutation: { ...authResolvers.Mutation, ...usersResolvers.Mutation, ...salonsResolvers.Mutation, ...catalogResolvers.Mutation, ...employeesResolvers.Mutation, ...schedulesResolvers.Mutation, ...appointmentsResolvers.Mutation },
+  Mutation: { ...authResolvers.Mutation, ...usersResolvers.Mutation, ...salonsResolvers.Mutation, ...catalogResolvers.Mutation, ...employeesResolvers.Mutation, ...schedulesResolvers.Mutation, ...appointmentsResolvers.Mutation, ...paymentsResolvers.Mutation },
   Query: {
     ...authResolvers.Query,
     ...usersResolvers.Query,
@@ -31,6 +33,7 @@ export const resolvers = {
     ...employeesResolvers.Query,
     ...schedulesResolvers.Query,
     ...appointmentsResolvers.Query,
+    ...paymentsResolvers.Query,
     health: async () => {
       let database = 'connected'
       try { await prisma.$queryRaw`SELECT 1` } catch { database = 'unavailable' }
@@ -45,4 +48,8 @@ export const resolvers = {
   EmployeeTimeOff: schedulesResolvers.EmployeeTimeOff,
   Appointment: appointmentsResolvers.Appointment,
   AppointmentHistory: appointmentsResolvers.AppointmentHistory,
+  Payment: paymentsResolvers.Payment,
+  PaymentEvent: paymentsResolvers.PaymentEvent,
+  ServiceCredentials: paymentsResolvers.ServiceCredentials,
+  PaymentDispute: paymentsResolvers.PaymentDispute,
 }

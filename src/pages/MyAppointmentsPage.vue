@@ -177,6 +177,21 @@
               <strong>{{ item.total.toLocaleString('pt-MZ') }} <small>MT</small></strong>
               <div>
                 <q-btn
+                  v-if="['PENDING', 'AWAITING_PAYMENT', 'CONFIRMED', 'IN_PROGRESS'].includes(item.status)"
+                  :flat="['CONFIRMED', 'IN_PROGRESS'].includes(item.status)"
+                  :round="['CONFIRMED', 'IN_PROGRESS'].includes(item.status)"
+                  :unelevated="['PENDING', 'AWAITING_PAYMENT'].includes(item.status)"
+                  :rounded="['PENDING', 'AWAITING_PAYMENT'].includes(item.status)"
+                  no-caps
+                  dense
+                  class="payment-action"
+                  :icon="['CONFIRMED', 'IN_PROGRESS'].includes(item.status) ? 'verified_user' : 'payments'"
+                  color="positive"
+                  :label="['PENDING', 'AWAITING_PAYMENT'].includes(item.status) ? 'Pagar' : undefined"
+                  :aria-label="['CONFIRMED', 'IN_PROGRESS'].includes(item.status) ? 'Ver pagamento protegido' : 'Pagar com M-Pesa'"
+                  :to="`/pagamento/${item.id}`"
+                  ><q-tooltip>{{ ['CONFIRMED', 'IN_PROGRESS'].includes(item.status) ? 'Ver pagamento ou abrir disputa' : 'Pagar com M-Pesa' }}</q-tooltip></q-btn
+                ><q-btn
                   flat
                   round
                   icon="visibility"
@@ -256,6 +271,15 @@
           </div></q-card-section
         ><q-card-actions class="details-actions"
           ><q-btn
+            v-if="['PENDING', 'AWAITING_PAYMENT'].includes(selected.status)"
+            unelevated
+            rounded
+            no-caps
+            color="positive"
+            icon="phone_android"
+            label="Pagar com M-Pesa"
+            :to="`/pagamento/${selected.id}`"
+          /><q-btn
             v-if="canCancel(selected.status)"
             flat
             rounded
@@ -280,7 +304,7 @@
           <span class="cancel-eyebrow"><q-icon name="warning_amber" /> AÇÃO IRREVERSÍVEL</span>
           <h2>Cancelar esta marcação?</h2>
           <p class="cancel-description">
-            Confirme apenas se já não puder comparecer. O horário voltará a ficar disponível.
+            Confirme apenas se já não puder comparecer. Se o pagamento já estiver confirmado, receberá 97% do valor; 3% correspondem à taxa não reembolsável da carteira móvel.
           </p>
           <div v-if="selected" class="cancel-summary">
             <span><q-icon name="content_cut" /></span>
@@ -322,6 +346,7 @@
             :loading="cancelling"
             @click="cancelAppointment" /></q-card-actions></q-card
     ></q-dialog>
+    <q-dialog v-model="refundDialog"><q-card v-if="refundedPayment" class="refund-card"><div class="refund-hero"><span><q-icon name="check" /></span><small>REEMBOLSO PROCESSADO</small><h2>Cancelamento concluído</h2><p>O valor foi devolvido ao seu número M-Pesa, com desconto da taxa da carteira móvel.</p></div><div class="refund-breakdown"><div><span>Valor pago</span><strong>{{ refundedPayment.amount.toLocaleString('pt-MZ', { minimumFractionDigits: 2 }) }} MT</strong></div><div class="fee"><span>Taxa M-Pesa (3%)</span><strong>− {{ refundedPayment.transactionFeeAmount.toLocaleString('pt-MZ', { minimumFractionDigits: 2 }) }} MT</strong></div><div class="refund-total"><span>Total reembolsado</span><strong>{{ refundedPayment.refundAmount.toLocaleString('pt-MZ', { minimumFractionDigits: 2 }) }} MT</strong></div><small>Referência: {{ refundedPayment.reference }}</small></div><q-card-actions><q-btn v-close-popup unelevated rounded no-caps color="positive" icon="done" label="Entendido" /></q-card-actions></q-card></q-dialog>
   </q-page>
 </template>
 
@@ -330,8 +355,10 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { gql } from '@apollo/client/core'
 import { apolloClient } from 'boot/apollo'
 import { useRoute, useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { useAuthStore } from 'stores/auth-store'
 const auth = useAuthStore(),
+  $q = useQuasar(),
   router = useRouter(),
   route = useRoute()
 const loading = ref(true),
@@ -343,7 +370,9 @@ const loading = ref(true),
   selected = ref(null),
   detailsDialog = ref(false),
   cancelDialog = ref(false),
-  cancelReason = ref('')
+  cancelReason = ref(''),
+  refundDialog = ref(false),
+  refundedPayment = ref(null)
 const LIST = gql`
   query Mine {
     myAppointments {
@@ -374,6 +403,7 @@ const CANCEL = gql`
     updateAppointmentStatus(id: $id, status: CANCELLED, reason: $reason) {
       id
       status
+      payment { reference status amount refundAmount transactionFeeAmount }
     }
   }
 `
@@ -511,11 +541,17 @@ function askCancel(item) {
 async function cancelAppointment() {
   cancelling.value = true
   try {
-    await apolloClient.mutate({
+    const { data } = await apolloClient.mutate({
       mutation: CANCEL,
       variables: { id: selected.value.id, reason: cancelReason.value || undefined },
     })
     cancelDialog.value = false
+    if (data.updateAppointmentStatus.payment?.status === 'REFUNDED') {
+      refundedPayment.value = data.updateAppointmentStatus.payment
+      refundDialog.value = true
+    } else {
+      $q.notify({ type: 'positive', message: 'Marcação cancelada com sucesso' })
+    }
     await load()
   } catch (e) {
     error.value = e.message
@@ -1423,8 +1459,13 @@ main {
   .appointment-side > div {
     flex-direction: column;
   }
-  .appointment-side > div > .q-btn:first-child {
+  .appointment-side > div > .q-btn[aria-label='Ver detalhes'] {
     display: none;
+  }
+  .appointment-side .payment-action {
+    min-height: 34px;
+    padding: 0 11px;
+    font-size: 9px;
   }
 }
 @media (max-width: 500px) {
@@ -1457,4 +1498,36 @@ main {
     width: 100%;
   }
 }
+.refund-card {
+  width: min(92vw, 450px);
+  overflow: hidden;
+  border-radius: 25px;
+}
+.refund-hero {
+  padding: 28px 25px 23px;
+  background: linear-gradient(145deg, #effaf3, #e2f5e8);
+  text-align: center;
+}
+.refund-hero > span {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 13px;
+  place-items: center;
+  border-radius: 18px;
+  background: #199353;
+  color: #fff;
+  font-size: 31px;
+}
+.refund-hero small { color: #178049; font-size: 8px; font-weight: 800; letter-spacing: 1.2px; }
+.refund-hero h2 { margin: 4px 0 6px; font-size: 25px; }
+.refund-hero p { margin: 0; color: #6d7c73; font-size: 11px; line-height: 1.5; }
+.refund-breakdown { padding: 22px 25px 13px; }
+.refund-breakdown > div { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid #ebf0ec; font-size: 11px; }
+.refund-breakdown .fee { color: #a66b12; }
+.refund-breakdown .refund-total { align-items: center; color: #147a45; }
+.refund-breakdown .refund-total strong { font-size: 17px; }
+.refund-breakdown > small { display: block; margin-top: 11px; color: #929d96; font-size: 8px; text-align: center; }
+.refund-card .q-card__actions { padding: 8px 25px 23px; }
+.refund-card .q-card__actions .q-btn { width: 100%; min-height: 45px; }
 </style>

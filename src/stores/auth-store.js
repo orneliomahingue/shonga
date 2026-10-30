@@ -68,6 +68,7 @@ export const useAuthStore = defineStore('auth', {
       sessionStorage.removeItem('shonga_access_token')
       localStorage.setItem('shonga_refresh_token', payload.refreshToken)
       localStorage.setItem('shonga_user', JSON.stringify(payload.user))
+      window.dispatchEvent(new Event('shonga:auth-changed'))
       this.scheduleRefresh()
     },
     async login(input) {
@@ -143,6 +144,7 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('shonga_access_token_expires_at')
       localStorage.removeItem('shonga_refresh_token')
       localStorage.removeItem('shonga_user')
+      window.dispatchEvent(new Event('shonga:auth-changed'))
     },
     async logout() {
       const refreshToken = localStorage.getItem('shonga_refresh_token')

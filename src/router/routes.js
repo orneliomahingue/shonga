@@ -6,6 +6,7 @@ const routes = [
       { path: '', component: () => import('pages/IndexPage.vue') },
       { path: 'marcar', component: () => import('pages/BookingPage.vue') },
       { path: 'minhas-marcacoes', component: () => import('pages/MyAppointmentsPage.vue'), meta: { requiresAuth: true } },
+      { path: 'pagamento/:appointmentId', component: () => import('pages/PaymentPage.vue'), meta: { requiresAuth: true } },
       { path: 'entrar', component: () => import('pages/AuthPage.vue') },
       { path: 'criar-conta', component: () => import('pages/AuthPage.vue') },
       { path: 'admin', component: () => import('pages/AdminPage.vue'), meta: { requiresAuth: true, role: 'ADMIN' } },

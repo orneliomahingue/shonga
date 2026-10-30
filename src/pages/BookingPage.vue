@@ -342,9 +342,9 @@
             rounded
             no-caps
             color="primary"
-            icon="calendar_month"
-            label="Ver minhas marcações"
-            @click="router.push('/minhas-marcacoes')"
+            icon="phone_android"
+            label="Pagar agora com M-Pesa"
+            @click="router.push(`/pagamento/${confirmedBooking.id}`)"
           /><q-btn
             flat
             rounded
@@ -551,7 +551,7 @@ async function confirmBooking() {
   error.value = ''
   try {
     const bookedSlot = slot.value
-    await apolloClient.mutate({
+    const { data } = await apolloClient.mutate({
       mutation: CREATE,
       variables: {
         input: {
@@ -562,6 +562,7 @@ async function confirmBooking() {
       },
     })
     confirmedBooking.value = {
+      id: data.createAppointment.id,
       serviceName: service.value.name,
       salonName: salon.value.name,
       employeeName: `${employee.value.firstName} ${employee.value.lastName}`,
